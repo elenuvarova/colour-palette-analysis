@@ -32,19 +32,20 @@ def _open_and_normalise(data: bytes, ignore_alpha: bool) -> Image.Image:
         img.load()
     except (UnidentifiedImageError, OSError) as exc:
         raise AppError(
-            "Could not read the image; the file may be corrupt.", status_code=400
+            "Couldn't read that image — it may be corrupt or not a real image file.",
+            status_code=400,
         ) from exc
 
     fmt = (img.format or "").upper()
     if fmt not in ALLOWED_FORMATS:
         raise AppError(
-            f"Unsupported image format '{fmt or 'unknown'}'. Allowed: JPEG, PNG, WEBP.",
+            f"That's a {fmt or 'unknown'} file — only JPG, PNG and WebP images are supported.",
             status_code=400,
         )
 
     if max(img.size) > settings.max_dimension:
         raise AppError(
-            f"Image dimensions exceed the maximum of {settings.max_dimension}px.",
+            f"That image is too big — keep each side under {settings.max_dimension}px.",
             status_code=400,
         )
 
@@ -80,12 +81,15 @@ def _assert_host_allowed(host: str) -> None:
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror as exc:
-        raise AppError("Could not resolve the URL's host.", status_code=400) from exc
+        raise AppError(
+            "Couldn't resolve that URL's host — check the address is spelled correctly.",
+            status_code=400,
+        ) from exc
     for info in infos:
         try:
             ip = ipaddress.ip_address(info[4][0])
         except ValueError as exc:
-            raise AppError("Could not validate the URL's host.", status_code=400) from exc
+            raise AppError("Couldn't read that URL's address.", status_code=400) from exc
         if (
             ip.is_private
             or ip.is_loopback
@@ -95,7 +99,7 @@ def _assert_host_allowed(host: str) -> None:
             or ip.is_unspecified
         ):
             raise AppError(
-                "Refusing to fetch from a private, local, or non-public address.",
+                "Can't fetch from a private or local address — use a public URL.",
                 status_code=400,
             )
 
@@ -113,7 +117,11 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
 
     host = urlparse(url).hostname
     if not host:
-        raise AppError("URL is missing a host.", status_code=400)
+        raise AppError(
+            "That doesn't look like a complete URL — include the full address, "
+            "e.g. https://example.com/image.png.",
+            status_code=400,
+        )
     _assert_host_allowed(host)
 
     try:
@@ -123,12 +131,12 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
         ):
             if 300 <= response.status_code < 400:
                 raise AppError(
-                    "URL redirects are not supported; provide a direct image link.",
+                    "That URL redirects somewhere else — paste the direct image link.",
                     status_code=400,
                 )
             if response.status_code >= 400:
                 raise AppError(
-                    f"Could not fetch the image (HTTP {response.status_code}).",
+                    f"The image URL returned an error (HTTP {response.status_code}).",
                     status_code=400,
                 )
 
@@ -136,7 +144,8 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
             content_type = raw_type.split(";")[0].strip().lower()
             if content_type and content_type not in _ALLOWED_CONTENT_TYPES:
                 raise AppError(
-                    f"URL did not return a supported image (content-type: {content_type}).",
+                    f"That link isn't an image (it returned {content_type}). "
+                    "Use a direct link to a JPG, PNG or WebP.",
                     status_code=400,
                 )
 
@@ -149,13 +158,19 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
             for chunk in response.iter_bytes():
                 size += len(chunk)
                 if size > settings.max_file_size:
-                    raise AppError("Remote image is too large.", status_code=413)
+                    raise AppError("That image is over the 10 MB limit.", status_code=413)
                 chunks.append(chunk)
             data = b"".join(chunks)
     except httpx.TimeoutException as exc:
-        raise AppError("Timed out fetching the image URL.", status_code=400) from exc
+        raise AppError(
+            "Timed out loading that image URL — the server may be slow or unreachable.",
+            status_code=400,
+        ) from exc
     except httpx.HTTPError as exc:
-        raise AppError("Failed to fetch the image URL.", status_code=400) from exc
+        raise AppError(
+            "Couldn't load the image from that URL — check the link is correct and public.",
+            status_code=400,
+        ) from exc
 
     return _open_and_normalise(data, ignore_alpha)
 

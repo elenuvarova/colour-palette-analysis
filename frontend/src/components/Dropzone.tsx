@@ -61,11 +61,11 @@ export function Dropzone({
       if (rejections.length > 0) {
         const code = rejections[0].errors[0]?.code;
         if (code === "file-too-large") {
-          onError("That image is larger than 10 MB.");
+          onError("That image is over 10 MB — try a smaller one.");
         } else if (code === "file-invalid-type") {
-          onError("Please choose an image file.");
+          onError("That's not a supported image — use JPG, PNG, WebP or SVG.");
         } else {
-          onError(rejections[0].errors[0]?.message ?? "That file was rejected.");
+          onError(rejections[0].errors[0]?.message ?? "That file couldn't be used.");
         }
         return;
       }
@@ -77,7 +77,7 @@ export function Dropzone({
         try {
           file = await svgToPng(file);
         } catch {
-          onError("Couldn't read that SVG.");
+          onError("Couldn't read that SVG — it may be malformed or use external resources.");
           return;
         }
       }

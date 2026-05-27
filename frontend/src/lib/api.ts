@@ -25,7 +25,7 @@ function paramsToFields(params: ExtractParams): Record<string, string> {
 
 async function parseResponse(res: Response): Promise<ExtractResponse> {
   if (!res.ok) {
-    let detail = `Request failed (${res.status})`;
+    let detail = `Something went wrong (HTTP ${res.status}).`;
     try {
       const body = await res.json();
       if (body && typeof body.detail === "string") {
@@ -48,9 +48,7 @@ function asTransportError(err: unknown): never {
     throw err;
   }
   throw new ApiError(
-    err instanceof Error
-      ? `Could not reach the server: ${err.message}`
-      : "Could not reach the server.",
+    "Couldn't reach the server. It may be waking up (free hosting) — try again in a moment.",
   );
 }
 

@@ -123,7 +123,7 @@ def _fetch(client: httpx.Client, url: str) -> tuple[str, str]:
             )
         if resp.status_code >= 400:
             raise AppError(
-                f"Could not fetch the page (HTTP {resp.status_code}).", status_code=400
+                f"The page returned an error (HTTP {resp.status_code}).", status_code=400
             )
         host = resp.url.host
         if host and not settings.allow_private_hosts:
@@ -147,7 +147,11 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
         raise AppError("URL must start with http:// or https://.", status_code=400)
     host = urlparse(url).hostname
     if not host:
-        raise AppError("URL is missing a host.", status_code=400)
+        raise AppError(
+            "That doesn't look like a complete URL — include the full address, "
+            "e.g. https://example.com.",
+            status_code=400,
+        )
     if not settings.allow_private_hosts:
         _assert_host_allowed(host)
 
@@ -182,13 +186,22 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
                 except AppError:
                     continue
     except httpx.TimeoutException as exc:
-        raise AppError("Timed out fetching the page.", status_code=400) from exc
+        raise AppError(
+            "Timed out loading that page — it may be slow or blocking automated requests.",
+            status_code=400,
+        ) from exc
     except httpx.HTTPError as exc:
-        raise AppError("Failed to fetch the page.", status_code=400) from exc
+        raise AppError(
+            "Couldn't load that page — check the link is correct and reachable.",
+            status_code=400,
+        ) from exc
 
     colors = parse_colors(css)
     if not colors:
-        raise AppError("No CSS colours found on that page.", status_code=422)
+        raise AppError(
+            "No CSS colours found on that page — it may load its styles with JavaScript.",
+            status_code=422,
+        )
 
     counts = Counter(colors)
     total = sum(counts.values())

@@ -44,7 +44,8 @@ async def _limit_body_size(request: Request, call_next):
         try:
             if int(declared) > _MAX_BODY_BYTES:
                 return JSONResponse(
-                    status_code=413, content={"detail": "Request body too large."}
+                    status_code=413,
+                    content={"detail": "That upload is too large — keep images under 10 MB."},
                 )
         except ValueError:
             pass
@@ -70,7 +71,7 @@ async def _rate_limit_handler(_: Request, exc: RateLimitExceeded):
 
     return JSONResponse(
         status_code=429,
-        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+        content={"detail": "You're going a bit fast — please wait a moment and try again."},
     )
 
 
@@ -150,7 +151,7 @@ async def extract(
     # load_from_upload's validate_size turns an over-limit read into a 413.
     data = await file.read(settings.max_file_size + 1)
     if not data:
-        raise AppError("Uploaded file is empty.", status_code=400)
+        raise AppError("That file is empty — choose an image with content.", status_code=400)
 
     img = image_loader.load_from_upload(data, ignore_alpha)
     original_size = img.size
