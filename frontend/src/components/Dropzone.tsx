@@ -3,6 +3,7 @@ import { Crop, ImageIcon, Link2, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import type { FileRejection } from "react-dropzone";
+import { svgToPng } from "../lib/svgToPng";
 import { ImageEditor } from "./ImageEditor";
 import { Button } from "./ui/Button";
 
@@ -56,7 +57,7 @@ export function Dropzone({
   );
 
   const onDrop = useCallback(
-    (accepted: File[], rejections: FileRejection[]) => {
+    async (accepted: File[], rejections: FileRejection[]) => {
       if (rejections.length > 0) {
         const code = rejections[0].errors[0]?.code;
         if (code === "file-too-large") {
@@ -68,16 +69,32 @@ export function Dropzone({
         }
         return;
       }
-      const file = accepted[0];
-      if (file) acceptFile(file);
+      let file = accepted[0];
+      if (!file) return;
+      // SVG is vector — rasterise it to a PNG in the browser so the normal
+      // pixel extractor can run on it.
+      if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+        try {
+          file = await svgToPng(file);
+        } catch {
+          onError("Couldn't read that SVG.");
+          return;
+        }
+      }
+      acceptFile(file);
     },
     [acceptFile, onError],
   );
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    // Match the formats the backend accepts (JPEG/PNG/WebP).
-    accept: { "image/jpeg": [], "image/png": [], "image/webp": [] },
+    // JPEG/PNG/WebP go straight to the backend; SVG is rasterised first.
+    accept: {
+      "image/jpeg": [],
+      "image/png": [],
+      "image/webp": [],
+      "image/svg+xml": [".svg"],
+    },
     maxSize: MAX_BYTES,
     multiple: false,
     noClick: true,
@@ -177,7 +194,7 @@ export function Dropzone({
                 Drag an image here
               </p>
               <p className="text-xs text-ink-500">
-                PNG, JPG or WebP — up to 10 MB
+                PNG, JPG, WebP or SVG — up to 10 MB
               </p>
             </div>
             <Button
