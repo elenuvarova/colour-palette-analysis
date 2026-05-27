@@ -21,32 +21,54 @@ export function ColorSwatch({
 }: ColorSwatchProps) {
   const fg = contrastText(color.rgb);
   const value = formatColor(color, format);
+  const pct = `${color.percentage.toFixed(1)}%`;
+  const a11yLabel = `Copy ${value}, ${color.percentage.toFixed(1)} percent`;
 
+  // Proportional strip: one segment per colour, width driven by its share.
+  // Text stays on a single line and truncates so narrow segments never wrap
+  // or overflow; the detailed cards below show the full value.
+  if (proportional) {
+    return (
+      <button
+        type="button"
+        onClick={() => onCopy(value)}
+        title={`Copy ${value} — ${pct}`}
+        aria-label={a11yLabel}
+        style={{
+          backgroundColor: color.hex,
+          color: fg,
+          flexBasis: `${Math.max(color.percentage, 2)}%`,
+        }}
+        className="group relative flex min-w-[40px] flex-1 flex-col justify-between gap-1 overflow-hidden px-2.5 py-4 text-left first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px] sm:px-3"
+      >
+        <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
+          {value}
+        </span>
+        <span className="block w-full truncate font-mono text-[11px] tabular-nums opacity-80">
+          {pct}
+        </span>
+      </button>
+    );
+  }
+
+  // Detailed card: full value (wraps cleanly for long OKLCH strings) + share.
   return (
     <button
       type="button"
       onClick={() => onCopy(value)}
       title={`Copy ${value}`}
-      aria-label={`Copy ${value}, ${color.percentage.toFixed(1)} percent`}
-      style={{
-        backgroundColor: color.hex,
-        color: fg,
-        // In proportional mode, flex-basis is driven by the colour's share.
-        flexBasis: proportional ? `${Math.max(color.percentage, 2)}%` : undefined,
-      }}
+      aria-label={a11yLabel}
+      style={{ backgroundColor: color.hex, color: fg }}
       className={clsx(
-        "group relative flex flex-col justify-between overflow-hidden text-left transition-transform",
-        proportional
-          ? "min-w-[68px] flex-1 px-3 py-4 first:rounded-l-xl last:rounded-r-xl sm:min-w-[88px]"
-          : "rounded-xl p-4 hover:-translate-y-0.5",
+        "group relative flex flex-col justify-between gap-2 overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-0.5",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs font-semibold tabular-nums sm:text-sm">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 break-words font-mono text-xs font-semibold tabular-nums sm:text-sm">
           {value}
         </span>
         <span
-          className="opacity-0 transition-opacity group-hover:opacity-80"
+          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-80"
           aria-hidden="true"
         >
           {justCopied ? (
@@ -56,9 +78,7 @@ export function ColorSwatch({
           )}
         </span>
       </div>
-      <span className="font-mono text-[11px] tabular-nums opacity-80">
-        {color.percentage.toFixed(1)}%
-      </span>
+      <span className="font-mono text-[11px] tabular-nums opacity-80">{pct}</span>
     </button>
   );
 }
