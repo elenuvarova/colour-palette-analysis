@@ -122,3 +122,20 @@ def test_extract_url_blocks_private_hosts(client, url):
     resp = client.post("/api/extract-url", json={"url": url})
     assert resp.status_code == 400, resp.text
     assert "detail" in resp.json()
+
+
+def test_extract_url_unresolvable_host(client):
+    resp = client.post("/api/extract-url", json={"url": "http://no-such-host.invalid/x.png"})
+    assert resp.status_code == 400, resp.text
+    assert "resolve" in resp.json()["detail"].lower()
+
+
+def test_extract_rejects_oversized_by_content_length(client):
+    # Larger than max_file_size + 1 MB headroom -> rejected early by middleware.
+    big = b"\x00" * (12 * 1024 * 1024)
+    resp = client.post(
+        "/api/extract",
+        files={"file": ("huge.png", big, "image/png")},
+    )
+    assert resp.status_code == 413, resp.text
+    assert "detail" in resp.json()

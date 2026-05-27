@@ -6,6 +6,7 @@ import time
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from PIL import Image
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
@@ -23,6 +24,27 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[])
 app = FastAPI(title="colour-palette-analysis API", version="0.1.0")
 app.state.limiter = limiter
 
+# Reject oversized requests by Content-Length before the body is buffered.
+# Allows the image limit plus headroom for multipart boundaries/fields.
+_MAX_BODY_BYTES = settings.max_file_size + 1024 * 1024
+
+
+@app.middleware("http")
+async def _limit_body_size(request: Request, call_next):
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            if int(declared) > _MAX_BODY_BYTES:
+                return JSONResponse(
+                    status_code=413, content={"detail": "Request body too large."}
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
+
+
+# CORS is added last so it remains the outermost layer and decorates every
+# response (including the 413 above) with the right headers.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
@@ -116,7 +138,9 @@ async def extract(
     tolerance = _validate_tolerance(tolerance)
     limit = _clamp_limit(limit)
 
-    data = await file.read()
+    # Read at most the limit + 1 byte so a huge upload can't exhaust memory;
+    # load_from_upload's validate_size turns an over-limit read into a 413.
+    data = await file.read(settings.max_file_size + 1)
     if not data:
         raise AppError("Uploaded file is empty.", status_code=400)
 

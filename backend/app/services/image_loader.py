@@ -68,21 +68,24 @@ def load_from_upload(data: bytes, ignore_alpha: bool) -> Image.Image:
     return _open_and_normalise(data, ignore_alpha)
 
 
-def _host_is_blocked(host: str) -> bool:
-    """Return True if ``host`` resolves to a non-public address (SSRF guard).
+def _assert_host_allowed(host: str) -> None:
+    """Raise :class:`AppError` unless ``host`` is a safe public target (SSRF guard).
 
     Resolves the hostname and rejects private, loopback, link-local, reserved,
     multicast, or unspecified addresses. Fails closed when resolution fails.
+    Skipped entirely when ``allow_private_hosts`` is set (local testing only).
     """
+    if settings.allow_private_hosts:
+        return
     try:
         infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return True
+    except socket.gaierror as exc:
+        raise AppError("Could not resolve the URL's host.", status_code=400) from exc
     for info in infos:
         try:
             ip = ipaddress.ip_address(info[4][0])
-        except ValueError:
-            return True
+        except ValueError as exc:
+            raise AppError("Could not validate the URL's host.", status_code=400) from exc
         if (
             ip.is_private
             or ip.is_loopback
@@ -91,8 +94,10 @@ def _host_is_blocked(host: str) -> bool:
             or ip.is_multicast
             or ip.is_unspecified
         ):
-            return True
-    return False
+            raise AppError(
+                "Refusing to fetch from a private, local, or non-public address.",
+                status_code=400,
+            )
 
 
 def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
@@ -109,11 +114,7 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
     host = urlparse(url).hostname
     if not host:
         raise AppError("URL is missing a host.", status_code=400)
-    if not settings.allow_private_hosts and _host_is_blocked(host):
-        raise AppError(
-            "Refusing to fetch from a private, local, or non-public address.",
-            status_code=400,
-        )
+    _assert_host_allowed(host)
 
     try:
         with (
