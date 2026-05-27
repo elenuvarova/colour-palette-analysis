@@ -1,5 +1,3 @@
-import type { PaletteColor } from "../types";
-
 export type Rgb = [number, number, number];
 
 export function hexToRgb(hex: string): Rgb {
@@ -110,34 +108,4 @@ export function readableOn(rgb: Rgb): "#000000" | "#FFFFFF" {
   return contrastRatio(rgb, [0, 0, 0]) >= contrastRatio(rgb, [255, 255, 255])
     ? "#000000"
     : "#FFFFFF";
-}
-
-export interface UiRoles {
-  surface: string;
-  text: string;
-  accent: string;
-  onAccent: string;
-}
-
-/** Assign UI roles (surface/text/accent) from a palette for the live preview. */
-export function deriveRoles(colors: PaletteColor[]): UiRoles {
-  const lightest = colors.reduce((a, c) =>
-    relativeLuminance(c.rgb) > relativeLuminance(a.rgb) ? c : a,
-  );
-  const darkest = colors.reduce((a, c) =>
-    relativeLuminance(c.rgb) < relativeLuminance(a.rgb) ? c : a,
-  );
-  const text =
-    contrastRatio(darkest.rgb, lightest.rgb) >= 4.5
-      ? darkest.hex
-      : readableOn(lightest.rgb);
-  const accent = colors
-    .filter((c) => c.hex !== lightest.hex)
-    .reduce((best, c) => (c.hsl[1] > best.hsl[1] ? c : best), darkest);
-  return {
-    surface: lightest.hex,
-    text,
-    accent: accent.hex,
-    onAccent: readableOn(accent.rgb),
-  };
 }

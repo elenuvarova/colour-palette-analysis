@@ -9,7 +9,6 @@ import { ExportMenu } from "./components/ExportMenu";
 import { PaletteGrid } from "./components/PaletteGrid";
 import { Shades } from "./components/Shades";
 import { SourcePreview } from "./components/SourcePreview";
-import { UiPreview } from "./components/UiPreview";
 import { Button } from "./components/ui/Button";
 import { PaletteSkeleton } from "./components/ui/Skeleton";
 import { ToastViewport } from "./components/ui/Toast";
@@ -240,8 +239,6 @@ export default function App() {
                   <DonutChart colors={data.colors} />
                 </div>
               </div>
-
-              <UiPreview colors={data.colors} />
 
               <Shades
                 colors={data.colors}
