@@ -1,7 +1,15 @@
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 import { nearestColorName } from "../lib/colorNames";
-import { hexToRgb, hslToHex, readableOn } from "../lib/palette";
+import {
+  hexToRgb,
+  oklabDistance,
+  oklabToOklch,
+  oklchToHex,
+  readableOn,
+  rgbToOklab,
+  type Oklab,
+} from "../lib/palette";
 import type { PaletteColor } from "../types";
 
 interface HarmonyProps {
@@ -10,6 +18,10 @@ interface HarmonyProps {
 }
 
 const MAX_BASE = 3;
+// OKLab ΔE below which a suggestion is treated as a duplicate of an existing
+// palette colour (or of an already-kept suggestion) and hidden.
+const DUP_THRESHOLD = 0.07;
+const SELF_THRESHOLD = 0.05;
 
 const SCHEMES: { name: string; offsets: number[] }[] = [
   { name: "Complementary", offsets: [180] },
@@ -67,6 +79,8 @@ interface Suggestion {
   hex: string;
 }
 
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 export function Harmony({ colors, onCopy }: HarmonyProps) {
   const [selected, setSelected] = useState<number[]>(() => [pickBaseIndex(colors)]);
 
@@ -80,7 +94,7 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
         const next = prev.filter((x) => x !== i);
         return next.length ? next : prev; // keep at least one
       }
-      if (prev.length >= MAX_BASE) return prev; // cap at 3
+      if (prev.length >= MAX_BASE) return prev;
       return [...prev, i];
     });
   };
@@ -89,27 +103,48 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
     (i) => colors[i] ?? colors[0],
   );
 
-  let suggestions: Suggestion[];
+  // Generate candidate colours in OKLCh (perceptually even hue rotation).
+  let raw: Suggestion[];
   if (picks.length === 1) {
-    const [h, s, l] = picks[0].hsl;
-    suggestions = SCHEMES.flatMap((scheme) =>
+    const [L, C, H] = oklabToOklch(rgbToOklab(picks[0].rgb));
+    raw = SCHEMES.flatMap((scheme) =>
       scheme.offsets.map((offset, k) => ({
         label: scheme.offsets.length > 1 ? `${scheme.name} ${k + 1}` : scheme.name,
-        hex: hslToHex((h + offset + 360) % 360, s, l),
+        hex: oklchToHex(L, C, (H + offset + 360) % 360),
       })),
     );
   } else {
-    const hues = picks.map((c) => c.hsl[0]);
-    const avgS = picks.reduce((sum, c) => sum + c.hsl[1], 0) / picks.length;
-    const avgL = picks.reduce((sum, c) => sum + c.hsl[2], 0) / picks.length;
+    const lchs = picks.map((c) => oklabToOklch(rgbToOklab(c.rgb)));
+    const avgL = lchs.reduce((sum, x) => sum + x[0], 0) / lchs.length;
+    const avgC = lchs.reduce((sum, x) => sum + x[1], 0) / lchs.length;
+    const hues = lchs.map((x) => x[2]);
     const gap = largestGapMidpoint(hues);
     const mean = circularMeanHue(hues);
-    suggestions = [
-      { label: "Balanced", hex: hslToHex(gap, avgS, avgL) },
-      { label: "Opposite", hex: hslToHex((mean + 180) % 360, avgS, avgL) },
-      { label: "Vivid", hex: hslToHex(gap, Math.min(avgS + 25, 90), 52) },
+    raw = [
+      { label: "Balanced", hex: oklchToHex(avgL, avgC, gap) },
+      { label: "Opposite", hex: oklchToHex(avgL, avgC, (mean + 180) % 360) },
+      {
+        label: "Vivid",
+        hex: oklchToHex(clamp(avgL, 0.5, 0.72), clamp(avgC * 1.5, 0.13, 0.24), gap),
+      },
     ];
   }
+
+  // Hide suggestions that are perceptually too close to a palette colour or to
+  // one already kept. Fall back to the raw list if everything gets filtered.
+  const paletteLabs = colors.map((c) => rgbToOklab(c.rgb));
+  const kept: Suggestion[] = [];
+  const keptLabs: Oklab[] = [];
+  for (const sug of raw) {
+    const lab = rgbToOklab(hexToRgb(sug.hex));
+    const dupOfPalette = paletteLabs.some((p) => oklabDistance(lab, p) < DUP_THRESHOLD);
+    const dupOfKept = keptLabs.some((k) => oklabDistance(lab, k) < SELF_THRESHOLD);
+    if (!dupOfPalette && !dupOfKept) {
+      kept.push(sug);
+      keptLabs.push(lab);
+    }
+  }
+  const suggestions = kept.length ? kept : raw;
 
   return (
     <div className="card flex flex-col gap-4 p-6">
@@ -118,7 +153,8 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
           Harmony
         </h3>
         <p className="text-xs text-ink-500">
-          Pick 1–3 colours; we suggest extra colours that complete them.
+          Pick 1–3 colours; we suggest extra colours that complete them
+          (computed in OKLCh; ones you already have are hidden).
         </p>
       </div>
 
