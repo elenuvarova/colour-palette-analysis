@@ -22,6 +22,8 @@ const ASPECTS: { label: string; value: number | "free" }[] = [
   { label: "1:1", value: 1 },
   { label: "4:3", value: 4 / 3 },
   { label: "16:9", value: 16 / 9 },
+  { label: "3:4", value: 3 / 4 },
+  { label: "9:16", value: 9 / 16 },
 ];
 
 export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps) {
@@ -123,22 +125,32 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
           formatValue={(v) => `${v.toFixed(2)}×`}
         />
 
+        <Slider
+          label="Rotation"
+          value={rotation}
+          min={0}
+          max={360}
+          step={1}
+          onChange={setRotation}
+          formatValue={(v) => `${Math.round(v)}°`}
+        />
+
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-ink-400">Rotate</span>
+            <span className="text-sm text-ink-400">Rotate 90°</span>
             <Button
               variant="secondary"
               size="sm"
               icon={<RotateCcw className="h-4 w-4" />}
               onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
-              aria-label="Rotate left"
+              aria-label="Rotate left 90 degrees"
             />
             <Button
               variant="secondary"
               size="sm"
               icon={<RotateCw className="h-4 w-4" />}
               onClick={() => setRotation((r) => (r + 90) % 360)}
-              aria-label="Rotate right"
+              aria-label="Rotate right 90 degrees"
             />
           </div>
 
