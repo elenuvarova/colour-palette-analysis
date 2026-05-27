@@ -97,6 +97,25 @@ export async function extractFromUrl(
   return parseResponse(res);
 }
 
+export async function extractFromSite(
+  url: string,
+  limit: number,
+  signal?: AbortSignal,
+): Promise<ExtractResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}/api/extract-site`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, limit }),
+      signal,
+    });
+  } catch (err) {
+    asTransportError(err);
+  }
+  return parseResponse(res);
+}
+
 /** Fire-and-forget request to wake a sleeping free-tier backend on page load. */
 export function warmUp(): void {
   void fetch(`${API_BASE_URL}/health`).catch(() => {});

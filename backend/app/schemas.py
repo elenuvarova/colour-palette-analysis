@@ -19,13 +19,13 @@ class ColorOut(BaseModel):
 
 
 class MetaOut(BaseModel):
-    """Metadata describing the analysed image and processing run."""
+    """Metadata describing the analysed source and processing run."""
 
     total_pixels: int
     processed_pixels: int
     image_size: list[int]
     processing_ms: int
-    mode: Literal["fast", "precision"]
+    mode: Literal["fast", "precision", "site"]
 
 
 class ExtractResponse(BaseModel):
@@ -43,3 +43,10 @@ class ExtractUrlRequest(BaseModel):
     tolerance: int = 32
     mode: Literal["fast", "precision"] = "fast"
     ignore_alpha: bool = Field(default=True)
+
+
+class ExtractSiteRequest(BaseModel):
+    """JSON request body for the ``/api/extract-site`` endpoint."""
+
+    url: str
+    limit: int = 8

@@ -15,7 +15,7 @@ export interface ExtractMeta {
   processed_pixels: number;
   image_size: [number, number];
   processing_ms: number;
-  mode: ExtractMode;
+  mode: ExtractMode | "site";
 }
 
 export interface ExtractResponse {

@@ -34,8 +34,17 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const toastId = useRef(0);
 
-  const { status, data, error, source, extractFile, extractUrl, reextract, reset } =
-    useExtractPalette();
+  const {
+    status,
+    data,
+    error,
+    source,
+    extractFile,
+    extractUrl,
+    extractSite,
+    reextract,
+    reset,
+  } = useExtractPalette();
   const { copy } = useCopyToClipboard();
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -117,6 +126,10 @@ export default function App() {
     (url: string) => void extractUrl(url, params),
     [extractUrl, params],
   );
+  const onSite = useCallback(
+    (url: string) => void extractSite(url, params),
+    [extractSite, params],
+  );
 
   // Keyboard shortcuts: Esc resets, Cmd/Ctrl+V pastes an image and extracts.
   useEffect(() => {
@@ -189,6 +202,7 @@ export default function App() {
           <Dropzone
             onFile={onFile}
             onUrl={onUrl}
+            onSite={onSite}
             onError={(msg) => pushToast(msg, "error")}
             disabled={isLoading}
           />
@@ -307,11 +321,17 @@ function EmptyState({ errored }: { errored: boolean }) {
 function Meta({ meta }: { meta: import("./types").ExtractMeta }) {
   const [w, h] = meta.image_size;
   const stats: { icon: JSX.Element; label: string; value: string }[] = [
-    {
-      icon: <Layers className="h-4 w-4" />,
-      label: "Image",
-      value: `${w} × ${h}`,
-    },
+    meta.mode === "site"
+      ? {
+          icon: <Layers className="h-4 w-4" />,
+          label: "Source",
+          value: "Website CSS",
+        }
+      : {
+          icon: <Layers className="h-4 w-4" />,
+          label: "Image",
+          value: `${w} × ${h}`,
+        },
     {
       icon: <Clock className="h-4 w-4" />,
       label: "Processed in",

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, extractFromFile, extractFromUrl } from "../lib/api";
+import {
+  ApiError,
+  extractFromFile,
+  extractFromSite,
+  extractFromUrl,
+} from "../lib/api";
 import type { ExtractParams, ExtractResponse } from "../types";
 
 export type ExtractStatus = "idle" | "loading" | "success" | "error";
@@ -8,6 +13,7 @@ export type ExtractStatus = "idle" | "loading" | "success" | "error";
 type Source =
   | { kind: "file"; file: File }
   | { kind: "url"; url: string }
+  | { kind: "site"; url: string }
   | null;
 
 interface UseExtractPalette {
@@ -17,6 +23,7 @@ interface UseExtractPalette {
   source: Source;
   extractFile: (file: File, params: ExtractParams) => Promise<void>;
   extractUrl: (url: string, params: ExtractParams) => Promise<void>;
+  extractSite: (url: string, params: ExtractParams) => Promise<void>;
   /** Re-run the last source with new params; no-op if there is no source. */
   reextract: (params: ExtractParams) => Promise<void>;
   /** Abort any in-flight request and return to the idle state. */
@@ -79,7 +86,9 @@ export function useExtractPalette(): UseExtractPalette {
         const res =
           src.kind === "file"
             ? await extractFromFile(src.file, params, controller.signal)
-            : await extractFromUrl(src.url, params, controller.signal);
+            : src.kind === "url"
+              ? await extractFromUrl(src.url, params, controller.signal)
+              : await extractFromSite(src.url, params.limit, controller.signal);
         if (id !== requestId.current) return; // a newer request superseded this one
         setData(res);
         setStatus("success");
@@ -110,6 +119,11 @@ export function useExtractPalette(): UseExtractPalette {
 
   const extractUrl = useCallback(
     (url: string, params: ExtractParams) => run({ kind: "url", url }, params),
+    [run],
+  );
+
+  const extractSite = useCallback(
+    (url: string, params: ExtractParams) => run({ kind: "site", url }, params),
     [run],
   );
 
@@ -146,6 +160,7 @@ export function useExtractPalette(): UseExtractPalette {
     source,
     extractFile,
     extractUrl,
+    extractSite,
     reextract,
     reset,
   };

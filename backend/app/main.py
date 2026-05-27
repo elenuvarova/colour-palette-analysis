@@ -14,10 +14,18 @@ from slowapi.util import get_remote_address
 
 from .config import settings
 from .exceptions import AppError, register_exception_handlers
-from .schemas import ColorOut, ExtractResponse, ExtractUrlRequest, MetaOut
+from .schemas import (
+    ColorOut,
+    ExtractResponse,
+    ExtractSiteRequest,
+    ExtractUrlRequest,
+    MetaOut,
+)
 from .services import image_loader
+from .services.color_utils import rgb_to_hex, rgb_to_hsl, rgb_to_oklch
 from .services.extractor_fast import ColorResult, extract_fast
 from .services.extractor_precision import extract_precision
+from .services.site_colors import extract_site
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
@@ -159,3 +167,34 @@ async def extract_url(request: Request, body: ExtractUrlRequest) -> ExtractRespo
     img = image_loader.load_from_url(body.url, body.ignore_alpha)
     original_size = img.size
     return _build_response(img, original_size, limit, tolerance, body.mode)
+
+
+@app.post("/api/extract-site", response_model=ExtractResponse)
+@limiter.limit(settings.rate_limit)
+async def extract_site_route(request: Request, body: ExtractSiteRequest) -> ExtractResponse:
+    """Extract a palette from the CSS colours declared on a web page."""
+    limit = _clamp_limit(body.limit)
+
+    start = time.perf_counter()
+    items, total = extract_site(body.url, limit)
+    elapsed_ms = int(round((time.perf_counter() - start) * 1000))
+
+    colors = [
+        ColorOut(
+            hex=rgb_to_hex(rgb),
+            rgb=[rgb[0], rgb[1], rgb[2]],
+            hsl=list(rgb_to_hsl(rgb)),
+            oklch=list(rgb_to_oklch(rgb)),
+            percentage=round(count / total * 100, 2),
+            pixel_count=count,
+        )
+        for rgb, count in items
+    ]
+    meta = MetaOut(
+        total_pixels=total,
+        processed_pixels=total,
+        image_size=[0, 0],
+        processing_ms=elapsed_ms,
+        mode="site",
+    )
+    return ExtractResponse(colors=colors, meta=meta)

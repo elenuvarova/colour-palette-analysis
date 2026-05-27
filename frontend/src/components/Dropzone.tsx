@@ -11,11 +11,18 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 interface DropzoneProps {
   onFile: (file: File) => void;
   onUrl: (url: string) => void;
+  onSite: (url: string) => void;
   onError: (message: string) => void;
   disabled?: boolean;
 }
 
-export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
+export function Dropzone({
+  onFile,
+  onUrl,
+  onSite,
+  onError,
+  disabled,
+}: DropzoneProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [url, setUrl] = useState("");
@@ -83,10 +90,10 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
     setFileName(null);
   };
 
-  const submitUrl = () => {
+  const submit = (kind: "image" | "site") => {
     const trimmed = url.trim();
     if (!trimmed) {
-      onError("Paste an image URL first.");
+      onError("Paste a URL first.");
       return;
     }
     try {
@@ -100,7 +107,7 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
       onError("That does not look like a valid URL.");
       return;
     }
-    onUrl(trimmed);
+    (kind === "image" ? onUrl : onSite)(trimmed);
   };
 
   return (
@@ -200,25 +207,41 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
           <input
             type="url"
             inputMode="url"
-            placeholder="Paste an image URL"
+            placeholder="Paste an image or page URL"
             value={url}
             disabled={disabled}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") submitUrl();
+              if (e.key === "Enter") submit("image");
             }}
             className="h-11 w-full rounded-xl border border-ink-700 bg-ink-850 pl-9 pr-3 text-sm text-ink-100 placeholder:text-ink-500 focus:border-accent-500/60"
           />
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={submitUrl}
-          disabled={disabled}
-        >
-          Extract from URL
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => submit("image")}
+            disabled={disabled}
+          >
+            Image
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => submit("site")}
+            disabled={disabled}
+            title="Extract the colours declared in the page's CSS"
+          >
+            Website
+          </Button>
+        </div>
       </div>
+
+      <p className="text-xs text-ink-500">
+        <span className="text-ink-400">Website</span> reads the colours declared
+        in the page's CSS (brand/UI) — images on the page aren't analysed.
+      </p>
 
       {editing && preview && (
         <ImageEditor
