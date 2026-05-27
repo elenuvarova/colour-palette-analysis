@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 text-ink-100 antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Consistent focus ring across interactive elements. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent-500/70 ring-offset-2 ring-offset-ink-950;
+  }
+
+  ::selection {
+    @apply bg-accent-500/30;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-ink-800 bg-ink-900/70 backdrop-blur;
+  }
+
+  /* Shimmer used by the Skeleton component. */
+  .shimmer::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0,
+      rgba(255, 255, 255, 0.06) 40%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.06) 60%,
+      transparent 100%
+    );
+    animation: shimmer 1.4s infinite;
+  }
+}
