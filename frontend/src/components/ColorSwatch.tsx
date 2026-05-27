@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { Check, Copy } from "lucide-react";
+import { nearestColorName } from "../lib/colorNames";
 import { contrastText, formatColor } from "../lib/formats";
 import type { ColorFormat, PaletteColor } from "../types";
 
@@ -22,6 +23,7 @@ export function ColorSwatch({
   const fg = contrastText(color.rgb);
   const value = formatColor(color, format);
   const pct = `${color.percentage.toFixed(1)}%`;
+  const name = nearestColorName(color.hex);
   const a11yLabel = `Copy ${value}, ${color.percentage.toFixed(1)} percent`;
 
   // Proportional strip: one segment per colour, width driven by its share.
@@ -78,7 +80,14 @@ export function ColorSwatch({
           )}
         </span>
       </div>
-      <span className="font-mono text-[11px] tabular-nums opacity-80">{pct}</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-[11px] opacity-70" title={name}>
+          {name}
+        </span>
+        <span className="shrink-0 font-mono text-[11px] tabular-nums opacity-80">
+          {pct}
+        </span>
+      </div>
     </button>
   );
 }

@@ -109,3 +109,43 @@ export function readableOn(rgb: Rgb): "#000000" | "#FFFFFF" {
     ? "#000000"
     : "#FFFFFF";
 }
+
+export type CvdType = "protanopia" | "deuteranopia" | "tritanopia";
+
+// Machado et al. (2009) simulation matrices, severity 1.0, applied in linear RGB.
+const CVD_MATRICES: Record<CvdType, number[][]> = {
+  protanopia: [
+    [0.152286, 1.052583, -0.204868],
+    [0.114503, 0.786281, 0.099216],
+    [-0.003882, -0.048116, 1.051998],
+  ],
+  deuteranopia: [
+    [0.367322, 0.860646, -0.227968],
+    [0.28009, 0.672501, 0.047413],
+    [-0.01182, 0.04294, 0.968881],
+  ],
+  tritanopia: [
+    [1.255528, -0.076749, -0.178779],
+    [-0.078411, 0.930809, 0.147602],
+    [0.004733, 0.691367, 0.3039],
+  ],
+};
+
+const srgbToLinear = (c: number) => {
+  const x = c / 255;
+  return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+};
+
+const linearToSrgb = (x: number) => {
+  const c = x <= 0.0031308 ? x * 12.92 : 1.055 * x ** (1 / 2.4) - 0.055;
+  return Math.round(Math.max(0, Math.min(1, c)) * 255);
+};
+
+/** Simulate how `rgb` appears to someone with the given colour-vision type. */
+export function simulateCvd(rgb: Rgb, type: CvdType): Rgb {
+  const m = CVD_MATRICES[type];
+  const lin = rgb.map(srgbToLinear);
+  return [0, 1, 2].map((i) =>
+    linearToSrgb(m[i][0] * lin[0] + m[i][1] * lin[1] + m[i][2] * lin[2]),
+  ) as Rgb;
+}

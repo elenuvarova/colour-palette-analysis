@@ -1,6 +1,7 @@
 import { Clock, ImageOff, Layers, Loader2, Moon, Sparkles, Sun } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
+import { ColorBlindness } from "./components/ColorBlindness";
 import { ContrastMatrix } from "./components/ContrastMatrix";
 import { Controls } from "./components/Controls";
 import { DonutChart } from "./components/DonutChart";
@@ -246,6 +247,8 @@ export default function App() {
               />
 
               <ContrastMatrix colors={data.colors} />
+
+              <ColorBlindness colors={data.colors} />
 
               <Meta meta={data.meta} />
 
