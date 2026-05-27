@@ -117,6 +117,27 @@ export function paletteToPngBlob(
   });
 }
 
+/**
+ * Copy the rendered palette PNG to the clipboard. Throws a readable error in
+ * browsers that don't support writing images (e.g. Firefox) so the caller can
+ * point the user at Download instead.
+ */
+export async function copyPaletteImage(colors: PaletteColor[]): Promise<void> {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard?.write ||
+    typeof ClipboardItem === "undefined"
+  ) {
+    throw new Error(
+      "Copying images isn't supported in this browser — use Download instead.",
+    );
+  }
+  // Pass the blob promise straight to ClipboardItem so the write stays inside
+  // the user gesture (required by Safari).
+  const item = new ClipboardItem({ "image/png": paletteToPngBlob(colors) });
+  await navigator.clipboard.write([item]);
+}
+
 function relativeLuminanceFromRgb([r, g, b]: [
   number,
   number,

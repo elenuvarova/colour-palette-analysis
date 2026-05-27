@@ -1,5 +1,6 @@
 import {
   Braces,
+  ClipboardCopy,
   Code2,
   Download,
   FileJson,
@@ -7,6 +8,7 @@ import {
   Palette,
 } from "lucide-react";
 import {
+  copyPaletteImage,
   downloadBlob,
   downloadText,
   paletteToAse,
@@ -21,10 +23,16 @@ import { Button } from "./ui/Button";
 interface ExportMenuProps {
   colors: PaletteColor[];
   onCopy: (value: string, label: string) => void;
+  onNotify: (message: string) => void;
   onError: (message: string) => void;
 }
 
-export function ExportMenu({ colors, onCopy, onError }: ExportMenuProps) {
+export function ExportMenu({
+  colors,
+  onCopy,
+  onNotify,
+  onError,
+}: ExportMenuProps) {
   const handlePng = async () => {
     try {
       const blob = await paletteToPngBlob(colors);
@@ -43,6 +51,17 @@ export function ExportMenu({ colors, onCopy, onError }: ExportMenuProps) {
     } catch (err) {
       onError(
         err instanceof Error ? err.message : "Could not generate the ASE file.",
+      );
+    }
+  };
+
+  const handleCopyImage = async () => {
+    try {
+      await copyPaletteImage(colors);
+      onNotify("Copied palette image");
+    } catch (err) {
+      onError(
+        err instanceof Error ? err.message : "Could not copy the image.",
       );
     }
   };
@@ -90,6 +109,14 @@ export function ExportMenu({ colors, onCopy, onError }: ExportMenuProps) {
           onClick={handlePng}
         >
           Download palette.png
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<ClipboardCopy className="h-4 w-4" />}
+          onClick={handleCopyImage}
+        >
+          Copy palette image
         </Button>
         <Button
           variant="secondary"

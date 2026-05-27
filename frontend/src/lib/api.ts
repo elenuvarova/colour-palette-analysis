@@ -42,9 +42,22 @@ async function parseResponse(res: Response): Promise<ExtractResponse> {
   return (await res.json()) as ExtractResponse;
 }
 
+/** Re-throw aborts untouched; wrap any other transport failure as an ApiError. */
+function asTransportError(err: unknown): never {
+  if (typeof err === "object" && err !== null && (err as { name?: string }).name === "AbortError") {
+    throw err;
+  }
+  throw new ApiError(
+    err instanceof Error
+      ? `Could not reach the server: ${err.message}`
+      : "Could not reach the server.",
+  );
+}
+
 export async function extractFromFile(
   file: File,
   params: ExtractParams,
+  signal?: AbortSignal,
 ): Promise<ExtractResponse> {
   const form = new FormData();
   form.append("file", file, file.name);
@@ -57,13 +70,10 @@ export async function extractFromFile(
     res = await fetch(`${API_BASE_URL}/api/extract`, {
       method: "POST",
       body: form,
+      signal,
     });
   } catch (err) {
-    throw new ApiError(
-      err instanceof Error
-        ? `Could not reach the server: ${err.message}`
-        : "Could not reach the server.",
-    );
+    asTransportError(err);
   }
   return parseResponse(res);
 }
@@ -71,6 +81,7 @@ export async function extractFromFile(
 export async function extractFromUrl(
   url: string,
   params: ExtractParams,
+  signal?: AbortSignal,
 ): Promise<ExtractResponse> {
   let res: Response;
   try {
@@ -78,15 +89,17 @@ export async function extractFromUrl(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, ...params }),
+      signal,
     });
   } catch (err) {
-    throw new ApiError(
-      err instanceof Error
-        ? `Could not reach the server: ${err.message}`
-        : "Could not reach the server.",
-    );
+    asTransportError(err);
   }
   return parseResponse(res);
+}
+
+/** Fire-and-forget request to wake a sleeping free-tier backend on page load. */
+export function warmUp(): void {
+  void fetch(`${API_BASE_URL}/health`).catch(() => {});
 }
 
 export { API_BASE_URL };

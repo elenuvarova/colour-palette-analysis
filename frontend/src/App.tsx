@@ -1,4 +1,4 @@
-import { Clock, ImageOff, Layers, Sparkles } from "lucide-react";
+import { Clock, ImageOff, Layers, Loader2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { Controls } from "./components/Controls";
@@ -6,11 +6,14 @@ import { DonutChart } from "./components/DonutChart";
 import { Dropzone } from "./components/Dropzone";
 import { ExportMenu } from "./components/ExportMenu";
 import { PaletteGrid } from "./components/PaletteGrid";
+import { SourcePreview } from "./components/SourcePreview";
+import { Button } from "./components/ui/Button";
 import { PaletteSkeleton } from "./components/ui/Skeleton";
 import { ToastViewport } from "./components/ui/Toast";
 import type { ToastData } from "./components/ui/Toast";
 import { useCopyToClipboard } from "./hooks/useCopyToClipboard";
 import { useExtractPalette } from "./hooks/useExtractPalette";
+import { warmUp } from "./lib/api";
 import type { ColorFormat, ExtractParams } from "./types";
 
 const DEFAULT_PARAMS: ExtractParams = {
@@ -32,6 +35,12 @@ export default function App() {
 
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const reextractTimer = useRef<number | null>(null);
+
+  // Wake the free-tier backend while the user picks an image, so the first
+  // real request isn't blocked by a cold start.
+  useEffect(() => {
+    warmUp();
+  }, []);
 
   const pushToast = useCallback(
     (message: string, tone: ToastData["tone"] = "default") => {
@@ -57,9 +66,10 @@ export default function App() {
     [copy, pushToast],
   );
 
-  // Scroll to results once an extraction succeeds.
+  // Bring the results area into view as soon as an extraction starts or
+  // finishes, so the loading state is visible right away.
   useEffect(() => {
-    if (status === "success" && resultsRef.current) {
+    if ((status === "loading" || status === "success") && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [status]);
@@ -170,10 +180,35 @@ export default function App() {
 
         {/* Results */}
         <section ref={resultsRef} className="scroll-mt-6">
-          {isLoading && <PaletteSkeleton />}
+          {isLoading && (
+            <div className="flex flex-col gap-5">
+              <div className="card flex items-center gap-4 p-4">
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-accent-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink-100">
+                    Analysing your image…
+                  </p>
+                  <p className="text-xs text-ink-500">
+                    Extracting dominant colours. The free server can take a
+                    moment to wake on the first request.
+                  </p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={reset}>
+                  Cancel
+                </Button>
+              </div>
+              <PaletteSkeleton />
+            </div>
+          )}
 
           {!isLoading && status === "success" && data && (
             <div className="flex animate-fade-in flex-col gap-8">
+              {source && (
+                <SourcePreview
+                  file={source.kind === "file" ? source.file : undefined}
+                  url={source.kind === "url" ? source.url : undefined}
+                />
+              )}
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto] lg:items-start">
                 <PaletteGrid
                   colors={data.colors}
@@ -191,6 +226,7 @@ export default function App() {
               <ExportMenu
                 colors={data.colors}
                 onCopy={(value, label) => handleCopy(value, label)}
+                onNotify={(msg) => pushToast(msg)}
                 onError={(msg) => pushToast(msg, "error")}
               />
             </div>
