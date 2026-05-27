@@ -1,0 +1,10 @@
+fastapi>=0.136
+uvicorn[standard]>=0.48
+python-multipart>=0.0.20
+pillow>=12.0
+extcolors>=1.0.0
+httpx>=0.28
+pydantic-settings>=2.14
+numpy>=2.2
+scikit-learn>=1.7
+slowapi>=0.1.9

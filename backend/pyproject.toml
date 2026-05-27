@@ -1,0 +1,23 @@
+[project]
+name = "colour-palette-analysis"
+version = "0.1.0"
+description = "Backend API that extracts dominant colours from images with their pixel percentages."
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI uses callables (File/Form/Depends) as argument defaults by design.
+"app/main.py" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+asyncio_mode = "auto"
