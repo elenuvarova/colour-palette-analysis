@@ -5,21 +5,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Restrained neutral scale + a single teal accent (the brand colour
-        // shown in the spec, #00ACAA). Avoids generic violet-500 everywhere.
+        // Neutral scale driven by CSS variables so it can flip between dark and
+        // light themes without touching components. Values live in index.css.
         ink: {
-          50: "#f6f7f8",
-          100: "#eceef0",
-          200: "#d4d8dd",
-          300: "#aeb5bf",
-          400: "#828d9b",
-          500: "#646f7e",
-          600: "#4f5866",
-          700: "#414853",
-          800: "#272c33",
-          850: "#1c2025",
-          900: "#15181c",
-          950: "#0d0f12",
+          50: "rgb(var(--ink-50) / <alpha-value>)",
+          100: "rgb(var(--ink-100) / <alpha-value>)",
+          200: "rgb(var(--ink-200) / <alpha-value>)",
+          300: "rgb(var(--ink-300) / <alpha-value>)",
+          400: "rgb(var(--ink-400) / <alpha-value>)",
+          500: "rgb(var(--ink-500) / <alpha-value>)",
+          600: "rgb(var(--ink-600) / <alpha-value>)",
+          700: "rgb(var(--ink-700) / <alpha-value>)",
+          800: "rgb(var(--ink-800) / <alpha-value>)",
+          850: "rgb(var(--ink-850) / <alpha-value>)",
+          900: "rgb(var(--ink-900) / <alpha-value>)",
+          950: "rgb(var(--ink-950) / <alpha-value>)",
         },
         accent: {
           50: "#e6fbfa",

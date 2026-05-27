@@ -3,8 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  /* Dark theme (default). Channels are space-separated RGB for Tailwind's
+     rgb(var(--x) / <alpha-value>) colour utilities. */
   :root {
     color-scheme: dark;
+    --ink-50: 246 247 248;
+    --ink-100: 236 238 240;
+    --ink-200: 212 216 221;
+    --ink-300: 174 181 191;
+    --ink-400: 130 141 155;
+    --ink-500: 100 111 126;
+    --ink-600: 79 88 102;
+    --ink-700: 65 72 83;
+    --ink-800: 39 44 51;
+    --ink-850: 28 32 37;
+    --ink-900: 21 24 28;
+    --ink-950: 13 15 18;
+  }
+
+  /* Light theme: the neutral ramp is reversed (50 = darkest text,
+     950 = lightest surface) so every ink-* class keeps its role. */
+  :root.light {
+    color-scheme: light;
+    --ink-50: 17 21 28;
+    --ink-100: 30 35 43;
+    --ink-200: 51 57 66;
+    --ink-300: 90 98 110;
+    --ink-400: 120 130 143;
+    --ink-500: 140 150 163;
+    --ink-600: 168 176 187;
+    --ink-700: 210 214 220;
+    --ink-800: 225 228 233;
+    --ink-850: 239 241 244;
+    --ink-900: 255 255 255;
+    --ink-950: 246 247 249;
   }
 
   html,

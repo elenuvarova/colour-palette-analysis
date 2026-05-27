@@ -23,9 +23,10 @@ export function Slider({
 }: SliderProps) {
   const id = useId();
   const pct = ((value - min) / (max - min)) * 100;
-  // Paint the filled portion of the track with the accent colour.
+  // Paint the filled portion with the accent colour; the rest tracks the
+  // theme via the ink-800 CSS variable.
   const trackStyle = {
-    background: `linear-gradient(90deg, #00acaa 0%, #00acaa ${pct}%, #272c33 ${pct}%, #272c33 100%)`,
+    background: `linear-gradient(90deg, #00acaa 0%, #00acaa ${pct}%, rgb(var(--ink-800)) ${pct}%, rgb(var(--ink-800)) 100%)`,
   };
 
   return (
