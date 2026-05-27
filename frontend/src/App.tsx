@@ -7,6 +7,7 @@ import { Controls } from "./components/Controls";
 import { DonutChart } from "./components/DonutChart";
 import { Dropzone } from "./components/Dropzone";
 import { ExportMenu } from "./components/ExportMenu";
+import { Harmony } from "./components/Harmony";
 import { PaletteGrid } from "./components/PaletteGrid";
 import { Shades } from "./components/Shades";
 import { SourcePreview } from "./components/SourcePreview";
@@ -240,6 +241,11 @@ export default function App() {
                   <DonutChart colors={data.colors} />
                 </div>
               </div>
+
+              <Harmony
+                colors={data.colors}
+                onCopy={(value, label) => handleCopy(value, label)}
+              />
 
               <Shades
                 colors={data.colors}
