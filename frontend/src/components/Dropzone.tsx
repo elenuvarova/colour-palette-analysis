@@ -1,8 +1,9 @@
 import { clsx } from "clsx";
-import { ImageIcon, Link2, UploadCloud, X } from "lucide-react";
+import { Crop, ImageIcon, Link2, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import type { FileRejection } from "react-dropzone";
+import { ImageEditor } from "./ImageEditor";
 import { Button } from "./ui/Button";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -18,6 +19,7 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [url, setUrl] = useState("");
+  const [editing, setEditing] = useState(false);
 
   // Revoke the object URL when the preview changes or the component unmounts.
   useEffect(() => {
@@ -36,6 +38,14 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
       onFile(file);
     },
     [onFile],
+  );
+
+  const applyEdited = useCallback(
+    (file: File) => {
+      setEditing(false);
+      acceptFile(file);
+    },
+    [acceptFile],
   );
 
   const onDrop = useCallback(
@@ -130,9 +140,25 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
             <p className="max-w-full truncate font-mono text-xs text-ink-400">
               {fileName}
             </p>
-            <Button variant="secondary" size="sm" type="button" onClick={open}>
-              Choose a different image
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() => setEditing(true)}
+                icon={<Crop className="h-4 w-4" />}
+              >
+                Crop / rotate
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={open}
+              >
+                Choose a different image
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -193,6 +219,15 @@ export function Dropzone({ onFile, onUrl, onError, disabled }: DropzoneProps) {
           Extract from URL
         </Button>
       </div>
+
+      {editing && preview && (
+        <ImageEditor
+          src={preview}
+          onApply={applyEdited}
+          onClose={() => setEditing(false)}
+          onError={onError}
+        />
+      )}
     </div>
   );
 }
