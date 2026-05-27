@@ -4,6 +4,7 @@ import {
   Code2,
   Download,
   FileJson,
+  Hash,
   ImageDown,
   Palette,
 } from "lucide-react";
@@ -14,8 +15,13 @@ import {
   paletteToAse,
   paletteToPngBlob,
   toCssVariables,
+  toDesignTokens,
+  toGimpPalette,
   toJsonString,
+  toScss,
+  toSvgSwatches,
   toTailwindConfig,
+  toTailwindV4Theme,
 } from "../lib/exports";
 import type { PaletteColor } from "../types";
 import { Button } from "./ui/Button";
@@ -35,23 +41,17 @@ export function ExportMenu({
 }: ExportMenuProps) {
   const handlePng = async () => {
     try {
-      const blob = await paletteToPngBlob(colors);
-      downloadBlob(blob, "palette.png");
+      downloadBlob(await paletteToPngBlob(colors), "palette.png");
     } catch (err) {
-      onError(
-        err instanceof Error ? err.message : "Could not generate the PNG.",
-      );
+      onError(err instanceof Error ? err.message : "Could not generate the PNG.");
     }
   };
 
   const handleAse = () => {
     try {
-      const blob = paletteToAse(colors);
-      downloadBlob(blob, "palette.ase");
+      downloadBlob(paletteToAse(colors), "palette.ase");
     } catch (err) {
-      onError(
-        err instanceof Error ? err.message : "Could not generate the ASE file.",
-      );
+      onError(err instanceof Error ? err.message : "Could not generate the ASE file.");
     }
   };
 
@@ -60,9 +60,7 @@ export function ExportMenu({
       await copyPaletteImage(colors);
       onNotify("Copied palette image");
     } catch (err) {
-      onError(
-        err instanceof Error ? err.message : "Could not copy the image.",
-      );
+      onError(err instanceof Error ? err.message : "Could not copy the image.");
     }
   };
 
@@ -71,74 +69,125 @@ export function ExportMenu({
       <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
         Export
       </h3>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Code2 className="h-4 w-4" />}
-          onClick={() => onCopy(toCssVariables(colors), "CSS variables")}
-        >
-          Copy CSS variables
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Braces className="h-4 w-4" />}
-          onClick={() => onCopy(toTailwindConfig(colors), "Tailwind config")}
-        >
-          Copy Tailwind config
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<FileJson className="h-4 w-4" />}
-          onClick={() =>
-            downloadText(
-              toJsonString(colors),
-              "palette.json",
-              "application/json",
-            )
-          }
-        >
-          Download .json
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<ImageDown className="h-4 w-4" />}
-          onClick={handlePng}
-        >
-          Download palette.png
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<ClipboardCopy className="h-4 w-4" />}
-          onClick={handleCopyImage}
-        >
-          Copy palette image
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Palette className="h-4 w-4" />}
-          onClick={handleAse}
-        >
-          Download .ase
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Download className="h-4 w-4" />}
-          onClick={() =>
-            onCopy(
-              colors.map((c) => c.hex.toUpperCase()).join(", "),
-              "Hex list",
-            )
-          }
-        >
-          Copy hex list
-        </Button>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xs uppercase tracking-wide text-ink-500">Copy</span>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Code2 className="h-4 w-4" />}
+            onClick={() => onCopy(toCssVariables(colors), "CSS variables")}
+          >
+            CSS variables
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Braces className="h-4 w-4" />}
+            onClick={() => onCopy(toTailwindConfig(colors), "Tailwind config")}
+          >
+            Tailwind config
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Braces className="h-4 w-4" />}
+            onClick={() => onCopy(toTailwindV4Theme(colors), "Tailwind v4 @theme")}
+          >
+            Tailwind v4 @theme
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Code2 className="h-4 w-4" />}
+            onClick={() => onCopy(toScss(colors), "SCSS variables")}
+          >
+            SCSS variables
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Hash className="h-4 w-4" />}
+            onClick={() =>
+              onCopy(colors.map((c) => c.hex.toUpperCase()).join(", "), "Hex list")
+            }
+          >
+            Hex list
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<ClipboardCopy className="h-4 w-4" />}
+            onClick={handleCopyImage}
+          >
+            Palette image
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xs uppercase tracking-wide text-ink-500">
+          Download
+        </span>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<FileJson className="h-4 w-4" />}
+            onClick={() =>
+              downloadText(toJsonString(colors), "palette.json", "application/json")
+            }
+          >
+            .json
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<FileJson className="h-4 w-4" />}
+            onClick={() =>
+              downloadText(toDesignTokens(colors), "tokens.json", "application/json")
+            }
+          >
+            Design tokens
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Palette className="h-4 w-4" />}
+            onClick={handleAse}
+          >
+            .ase (Adobe)
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Palette className="h-4 w-4" />}
+            onClick={() =>
+              downloadText(toGimpPalette(colors), "palette.gpl", "text/plain")
+            }
+          >
+            .gpl (GIMP)
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Download className="h-4 w-4" />}
+            onClick={() =>
+              downloadText(toSvgSwatches(colors), "palette.svg", "image/svg+xml")
+            }
+          >
+            .svg swatches
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<ImageDown className="h-4 w-4" />}
+            onClick={handlePng}
+          >
+            palette.png
+          </Button>
+        </div>
       </div>
     </div>
   );

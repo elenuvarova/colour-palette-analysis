@@ -1,3 +1,4 @@
+import { tonalScale } from "./palette";
 import type { PaletteColor } from "../types";
 
 /** Build "--color-1: #00ACAA;" CSS custom-property declarations. */
@@ -22,6 +23,80 @@ export function toTailwindConfig(colors: PaletteColor[]): string {
     "  },",
     "},",
   ].join("\n");
+}
+
+/** SCSS variables: `$color-1: #00ACAA;`. */
+export function toScss(colors: PaletteColor[]): string {
+  return colors
+    .map((c, i) => `$color-${i + 1}: ${c.hex.toUpperCase()};`)
+    .join("\n");
+}
+
+/** Tailwind v4 `@theme` block with flat palette colours. */
+export function toTailwindV4Theme(colors: PaletteColor[]): string {
+  const lines = colors.map(
+    (c, i) => `  --color-palette-${i + 1}: ${c.hex.toUpperCase()};`,
+  );
+  return `@theme {\n${lines.join("\n")}\n}`;
+}
+
+/** Tailwind `theme.extend.colors` with a full 50–950 scale per colour. */
+export function toTailwindScales(colors: PaletteColor[]): string {
+  const pad = "        ";
+  const entries = colors.map((c, i) => {
+    const steps = tonalScale(c.hex)
+      .map((s) => `${pad}  '${s.step}': '${s.hex}',`)
+      .join("\n");
+    return `${pad}'color-${i + 1}': {\n${steps}\n${pad}},`;
+  });
+  return [
+    "theme: {",
+    "  extend: {",
+    "    colors: {",
+    ...entries,
+    "    },",
+    "  },",
+    "},",
+  ].join("\n");
+}
+
+/** W3C design-tokens JSON. */
+export function toDesignTokens(colors: PaletteColor[]): string {
+  const palette: Record<string, { $type: "color"; $value: string }> = {};
+  colors.forEach((c, i) => {
+    palette[`color-${i + 1}`] = { $type: "color", $value: c.hex.toUpperCase() };
+  });
+  return JSON.stringify({ palette }, null, 2);
+}
+
+/** GIMP / Inkscape `.gpl` palette. */
+export function toGimpPalette(colors: PaletteColor[]): string {
+  const pad = (n: number) => String(n).padStart(3, " ");
+  const rows = colors.map((c, i) => {
+    const [r, g, b] = c.rgb;
+    return `${pad(r)} ${pad(g)} ${pad(b)}\tColor ${i + 1} ${c.hex.toUpperCase()}`;
+  });
+  return [
+    "GIMP Palette",
+    "Name: colour-palette-analysis",
+    `Columns: ${colors.length}`,
+    "#",
+    ...rows,
+    "",
+  ].join("\n");
+}
+
+/** Proportional SVG swatch strip. */
+export function toSvgSwatches(colors: PaletteColor[], width = 1200, height = 200): string {
+  const total = colors.reduce((sum, c) => sum + c.percentage, 0) || 1;
+  let x = 0;
+  const rects = colors.map((c) => {
+    const w = (c.percentage / total) * width;
+    const rect = `  <rect x="${x.toFixed(2)}" y="0" width="${(w + 0.5).toFixed(2)}" height="${height}" fill="${c.hex.toUpperCase()}"/>`;
+    x += w;
+    return rect;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${rects.join("\n")}\n</svg>\n`;
 }
 
 /** Serialise the full palette payload to pretty JSON. */

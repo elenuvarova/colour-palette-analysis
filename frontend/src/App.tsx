@@ -1,18 +1,22 @@
-import { Clock, ImageOff, Layers, Loader2, Sparkles } from "lucide-react";
+import { Clock, ImageOff, Layers, Loader2, Moon, Sparkles, Sun } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
+import { ContrastMatrix } from "./components/ContrastMatrix";
 import { Controls } from "./components/Controls";
 import { DonutChart } from "./components/DonutChart";
 import { Dropzone } from "./components/Dropzone";
 import { ExportMenu } from "./components/ExportMenu";
 import { PaletteGrid } from "./components/PaletteGrid";
+import { Shades } from "./components/Shades";
 import { SourcePreview } from "./components/SourcePreview";
+import { UiPreview } from "./components/UiPreview";
 import { Button } from "./components/ui/Button";
 import { PaletteSkeleton } from "./components/ui/Skeleton";
 import { ToastViewport } from "./components/ui/Toast";
 import type { ToastData } from "./components/ui/Toast";
 import { useCopyToClipboard } from "./hooks/useCopyToClipboard";
 import { useExtractPalette } from "./hooks/useExtractPalette";
+import { useTheme } from "./hooks/useTheme";
 import { warmUp } from "./lib/api";
 import type { ColorFormat, ExtractParams } from "./types";
 
@@ -32,6 +36,7 @@ export default function App() {
   const { status, data, error, source, extractFile, extractUrl, reextract, reset } =
     useExtractPalette();
   const { copy } = useCopyToClipboard();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const reextractTimer = useRef<number | null>(null);
@@ -149,11 +154,26 @@ export default function App() {
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
         {/* Header */}
         <header className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-accent-400">
-            <Sparkles className="h-5 w-5" />
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-500">
-              palette extractor
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-accent-400">
+              <Sparkles className="h-5 w-5" />
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-500">
+                palette extractor
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              title="Toggle light / dark"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-ink-300 hover:text-ink-100"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
             colour-palette-analysis
@@ -220,6 +240,15 @@ export default function App() {
                   <DonutChart colors={data.colors} />
                 </div>
               </div>
+
+              <UiPreview colors={data.colors} />
+
+              <Shades
+                colors={data.colors}
+                onCopy={(value, label) => handleCopy(value, label)}
+              />
+
+              <ContrastMatrix colors={data.colors} />
 
               <Meta meta={data.meta} />
 
