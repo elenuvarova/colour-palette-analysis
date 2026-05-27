@@ -35,7 +35,17 @@ _HREF = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.I)
 _MAX_BYTES = 3 * 1024 * 1024
 _MAX_STYLESHEETS = 8
 _TIMEOUT = 6.0
-_UA = "Mozilla/5.0 (compatible; colour-palette-analysis/1.0)"
+# A realistic browser UA gets past simple user-agent blocks. Advanced bot
+# protection (JS challenges, TLS fingerprinting) can't be bypassed without a
+# real browser — those sites will still fail, which is expected.
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 
 def _clamp(v: float) -> int:
@@ -105,6 +115,12 @@ def parse_colors(css: str) -> list[RGB]:
 def _fetch(client: httpx.Client, url: str) -> tuple[str, str]:
     """Fetch a resource as text, enforcing the host guard and a size cap."""
     with client.stream("GET", url) as resp:
+        if resp.status_code in (401, 403, 429):
+            raise AppError(
+                f"The site blocked the request (HTTP {resp.status_code}). Many large "
+                "sites block non-browser access — try another site.",
+                status_code=400,
+            )
         if resp.status_code >= 400:
             raise AppError(
                 f"Could not fetch the page (HTTP {resp.status_code}).", status_code=400
@@ -140,7 +156,7 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
             timeout=_TIMEOUT,
             follow_redirects=True,
             max_redirects=5,
-            headers={"User-Agent": _UA},
+            headers=_HEADERS,
         ) as client:
             html, base = _fetch(client, url)
             css = html
