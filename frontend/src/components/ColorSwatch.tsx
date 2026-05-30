@@ -23,12 +23,12 @@ interface ColorSwatchProps {
   justCopied?: boolean;
 }
 
-// Tiered text visibility for the proportional strip:
-//   wide  — show hex + %
-//   mid   — show only % (the short label that always fits)
-//   tiny  — show nothing (colour only; full info in tooltip + cards below)
-const HIDE_HEX_BELOW_PCT = 10;
-const HIDE_ALL_BELOW_PCT = 4;
+// Tiered text visibility for the proportional strip. Thresholds account for
+// the min-w-[40px] floor — below ~6% the segment is pinned to the floor and
+// even "X.X%" overflows after padding, so we hide all text. Above 12% there's
+// reliable room for both the hex and the percent.
+const HIDE_HEX_BELOW_PCT = 12;
+const HIDE_ALL_BELOW_PCT = 7;
 const REVEAL_STAGGER_MS = 40;
 
 export function ColorSwatch({
