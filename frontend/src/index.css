@@ -19,6 +19,26 @@
     --ink-850: 28 32 37;
     --ink-900: 21 24 28;
     --ink-950: 13 15 18;
+
+    /* Accent (brand teal) — theme-constant. Defined as CSS variables so JS/CSS
+       strings can reference rgb(var(--accent-500)) instead of literal #00acaa. */
+    --accent-50: 230 251 250;
+    --accent-100: 194 245 243;
+    --accent-200: 138 234 231;
+    --accent-300: 77 217 214;
+    --accent-400: 31 194 192;
+    --accent-500: 0 172 170;
+    --accent-600: 0 139 138;
+    --accent-700: 7 110 110;
+    --accent-800: 11 87 87;
+    --accent-900: 14 73 73;
+
+    /* Top-3 dominant colours of the current palette, pushed by App.tsx on
+       successful extraction. Used by the page tint below. Default = accent
+       so the page has a teal glow before any palette is loaded. */
+    --palette-1: var(--accent-500);
+    --palette-2: var(--accent-400);
+    --palette-3: var(--accent-300);
   }
 
   /* Light theme: the neutral ramp is reversed (50 = darkest text,
@@ -50,6 +70,31 @@
     font-feature-settings: "cv11", "ss01";
   }
 
+  /* Subtle page tint driven by the current palette — soft radial behind
+     everything that picks up the dominant extracted colour. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      radial-gradient(
+        ellipse 80% 50% at 20% 0%,
+        rgb(var(--palette-1) / 0.08),
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 80% 0%,
+        rgb(var(--palette-2) / 0.06),
+        transparent 65%
+      );
+  }
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
   /* Consistent focus ring across interactive elements. */
   :focus-visible {
     @apply outline-none ring-2 ring-accent-500/70 ring-offset-2 ring-offset-ink-950;
@@ -65,16 +110,23 @@
     @apply rounded-2xl border border-ink-800 bg-ink-900/70 backdrop-blur;
   }
 
-  /* Shimmer used by the Skeleton component. */
+  /* Compact card density for horizontal info rows (Meta tile, SourcePreview,
+     loader card). Use .card for the default p-6 surface. */
+  .card-compact {
+    @apply card p-4;
+  }
+
+  /* Shimmer used by the Skeleton component — uses the theme ink-50 so it
+     sweeps light over dark in dark mode and dark over light in light mode. */
   .shimmer::after {
     content: "";
     @apply absolute inset-0 -translate-x-full;
     background-image: linear-gradient(
       90deg,
       transparent 0,
-      rgba(255, 255, 255, 0.06) 40%,
-      rgba(255, 255, 255, 0.09) 50%,
-      rgba(255, 255, 255, 0.06) 60%,
+      rgb(var(--ink-50) / 0.06) 40%,
+      rgb(var(--ink-50) / 0.09) 50%,
+      rgb(var(--ink-50) / 0.06) 60%,
       transparent 100%
     );
     animation: shimmer 1.4s infinite;

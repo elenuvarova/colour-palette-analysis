@@ -1,10 +1,12 @@
-import { clsx } from "clsx";
 import { Check, RotateCcw, RotateCw, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { getCroppedBlob, type PixelArea } from "../lib/cropImage";
 import { Button } from "./ui/Button";
+import { IconButton } from "./ui/IconButton";
+import { SectionHeader } from "./ui/SectionHeader";
+import { Segmented } from "./ui/Segmented";
 import { Slider } from "./ui/Slider";
 
 interface ImageEditorProps {
@@ -74,7 +76,7 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-ink-950/80 p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Edit image"
@@ -84,19 +86,14 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
         className="card flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-300">
-            Crop &amp; rotate
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close editor"
-            className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-ink-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <SectionHeader
+          title="Crop & rotate"
+          action={
+            <IconButton size="sm" variant="ghost" onClick={onClose} aria-label="Close editor">
+              <X className="h-4 w-4" />
+            </IconButton>
+          }
+        />
 
         <div className="relative h-72 w-full overflow-hidden rounded-xl bg-black sm:h-96">
           <Cropper
@@ -156,23 +153,12 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-ink-400">Ratio</span>
-            <div className="flex gap-1 rounded-xl border border-ink-700 bg-ink-850 p-1">
-              {ASPECTS.map((a) => (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => setAspectKey(a.value)}
-                  className={clsx(
-                    "rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
-                    aspectKey === a.value
-                      ? "bg-accent-500 text-ink-950"
-                      : "text-ink-400 hover:text-ink-100",
-                  )}
-                >
-                  {a.label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              options={ASPECTS.map((a) => ({ value: a.value, label: a.label }))}
+              value={aspectKey}
+              onChange={setAspectKey}
+              ariaLabel="Crop aspect ratio"
+            />
           </div>
         </div>
 

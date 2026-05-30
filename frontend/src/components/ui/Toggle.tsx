@@ -83,7 +83,7 @@ export function Switch({ label, checked, onChange, hint }: SwitchProps) {
       >
         <span
           className={clsx(
-            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+            "inline-block h-5 w-5 transform rounded-full bg-ink-50 shadow transition-transform",
             checked ? "translate-x-5" : "translate-x-0.5",
           )}
         />

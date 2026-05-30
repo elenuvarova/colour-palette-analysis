@@ -1,8 +1,9 @@
-import { clsx } from "clsx";
 import { useState } from "react";
 import { ALL_FORMATS, FORMAT_LABELS, formatColor } from "../lib/formats";
 import type { ColorFormat, PaletteColor } from "../types";
 import { ColorSwatch } from "./ColorSwatch";
+import { SectionHeader } from "./ui/SectionHeader";
+import { Segmented } from "./ui/Segmented";
 
 interface PaletteGridProps {
   colors: PaletteColor[];
@@ -29,37 +30,21 @@ export function PaletteGrid({
     );
   };
 
+  const formatOptions = ALL_FORMATS.map((f) => ({ value: f, label: FORMAT_LABELS[f] }));
+
   return (
     <div className="flex flex-col gap-5">
-      {/* Format toggle */}
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-          Palette
-        </h3>
-        <div
-          role="radiogroup"
-          aria-label="Colour format"
-          className="flex gap-1 rounded-xl border border-ink-700 bg-ink-850 p-1"
-        >
-          {ALL_FORMATS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              role="radio"
-              aria-checked={f === format}
-              onClick={() => onFormatChange(f)}
-              className={clsx(
-                "rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
-                f === format
-                  ? "bg-accent-500 text-ink-950"
-                  : "text-ink-400 hover:text-ink-100",
-              )}
-            >
-              {FORMAT_LABELS[f]}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SectionHeader
+        title="Palette"
+        action={
+          <Segmented
+            options={formatOptions}
+            value={format}
+            onChange={onFormatChange}
+            ariaLabel="Colour format"
+          />
+        }
+      />
 
       {/* Proportional strip */}
       <div className="flex w-full overflow-hidden rounded-xl">

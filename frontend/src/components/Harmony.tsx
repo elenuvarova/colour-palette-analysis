@@ -11,6 +11,7 @@ import {
   type Oklab,
 } from "../lib/palette";
 import type { PaletteColor } from "../types";
+import { SectionHeader } from "./ui/SectionHeader";
 
 interface HarmonyProps {
   colors: PaletteColor[];
@@ -148,15 +149,10 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
 
   return (
     <div className="card flex flex-col gap-4 p-6">
-      <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-          Harmony
-        </h3>
-        <p className="text-xs text-ink-500">
-          Pick 1–3 colours; we suggest extra colours that complete them
-          (computed in OKLCh; ones you already have are hidden).
-        </p>
-      </div>
+      <SectionHeader
+        title="Harmony"
+        subtitle="Pick 1–3 colours; we suggest extra colours that complete them (computed in OKLCh; ones you already have are hidden)."
+      />
 
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-ink-500">
@@ -194,11 +190,11 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
             style={{ backgroundColor: sug.hex, color: readableOn(hexToRgb(sug.hex)) }}
             className="flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-transform hover:-translate-y-0.5"
           >
-            <span className="truncate text-[11px] font-medium opacity-80">
+            <span className="truncate text-2xs font-medium opacity-80">
               {sug.label}
             </span>
             <span className="font-mono text-xs font-semibold">{sug.hex}</span>
-            <span className="truncate text-[11px] opacity-80">
+            <span className="truncate text-2xs opacity-80">
               {nearestColorName(sug.hex)}
             </span>
           </button>

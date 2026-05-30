@@ -1,3 +1,4 @@
+import { SectionHeader } from "./ui/SectionHeader";
 import { Slider } from "./ui/Slider";
 import { SegmentedToggle, Switch } from "./ui/Toggle";
 import type { ExtractMode, ExtractParams } from "../types";
@@ -14,9 +15,7 @@ export function Controls({ params, onChange, disabled }: ControlsProps) {
 
   return (
     <div className="card flex flex-col gap-6 p-6" aria-disabled={disabled}>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-        Parameters
-      </h2>
+      <SectionHeader title="Parameters" />
 
       <Slider
         label="Colours"

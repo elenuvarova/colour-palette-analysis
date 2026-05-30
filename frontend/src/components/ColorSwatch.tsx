@@ -46,7 +46,7 @@ export function ColorSwatch({
         <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
           {value}
         </span>
-        <span className="block w-full truncate font-mono text-[11px] tabular-nums opacity-80">
+        <span className="block w-full truncate font-mono text-2xs tabular-nums opacity-80">
           {pct}
         </span>
       </button>
@@ -81,10 +81,10 @@ export function ColorSwatch({
         </span>
       </div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-[11px] opacity-70" title={name}>
+        <span className="min-w-0 truncate text-2xs opacity-70" title={name}>
           {name}
         </span>
-        <span className="shrink-0 font-mono text-[11px] tabular-nums opacity-80">
+        <span className="shrink-0 font-mono text-2xs tabular-nums opacity-80">
           {pct}
         </span>
       </div>

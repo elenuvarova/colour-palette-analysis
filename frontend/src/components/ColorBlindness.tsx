@@ -1,5 +1,6 @@
 import { rgbToHex, simulateCvd, type CvdType } from "../lib/palette";
 import type { PaletteColor } from "../types";
+import { SectionHeader } from "./ui/SectionHeader";
 
 interface ColorBlindnessProps {
   colors: PaletteColor[];
@@ -18,15 +19,10 @@ export function ColorBlindness({ colors }: ColorBlindnessProps) {
 
   return (
     <div className="card flex flex-col gap-3 p-6">
-      <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-          Colour-blindness
-        </h3>
-        <p className="text-xs text-ink-500">
-          How the palette looks to different colour-vision types — watch for
-          colours that merge.
-        </p>
-      </div>
+      <SectionHeader
+        title="Colour-blindness"
+        subtitle="How the palette looks to different colour-vision types — watch for colours that merge."
+      />
 
       <div className="flex flex-col gap-2.5">
         {VIEWS.map((view) => (

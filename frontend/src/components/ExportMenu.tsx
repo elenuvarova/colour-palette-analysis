@@ -25,6 +25,7 @@ import {
 } from "../lib/exports";
 import type { PaletteColor } from "../types";
 import { Button } from "./ui/Button";
+import { SectionHeader } from "./ui/SectionHeader";
 
 interface ExportMenuProps {
   colors: PaletteColor[];
@@ -66,9 +67,7 @@ export function ExportMenu({
 
   return (
     <div className="card flex flex-col gap-4 p-6">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-        Export
-      </h3>
+      <SectionHeader title="Export" />
 
       <div className="flex flex-col gap-2">
         <span className="text-xs uppercase tracking-wide text-ink-500">Copy</span>

@@ -1,5 +1,6 @@
 import { contrastGrade, contrastRatio } from "../lib/palette";
 import type { PaletteColor } from "../types";
+import { SectionHeader } from "./ui/SectionHeader";
 
 interface ContrastMatrixProps {
   colors: PaletteColor[];
@@ -23,15 +24,10 @@ export function ContrastMatrix({ colors }: ContrastMatrixProps) {
 
   return (
     <div className="card flex flex-col gap-3 p-6">
-      <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-400">
-          Contrast
-        </h3>
-        <p className="text-xs text-ink-500">
-          Text (row) on background (column). Ratio + WCAG grade; ● = AA Large,
-          ●● = AA, ●●● = AAA.
-        </p>
-      </div>
+      <SectionHeader
+        title="Contrast"
+        subtitle="Text (row) on background (column). Ratio + WCAG grade; ● = AA Large, ●● = AA, ●●● = AAA."
+      />
 
       <div className="no-scrollbar overflow-x-auto">
         <div
@@ -98,7 +94,7 @@ function Row({
             <span className="font-mono text-sm font-semibold tabular-nums">
               {ratio.toFixed(1)}
             </span>
-            <span className="font-mono text-[10px] leading-none opacity-90">
+            <span className="font-mono text-3xs leading-none opacity-90">
               {GRADE_DOT[grade]}
             </span>
           </div>

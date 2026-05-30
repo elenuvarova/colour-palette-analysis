@@ -208,7 +208,7 @@ export function Dropzone({
             </Button>
             <p className="text-xs text-ink-600">
               or press{" "}
-              <kbd className="rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 font-mono text-[11px] text-ink-300">
+              <kbd className="rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 font-mono text-2xs text-ink-300">
                 ⌘/Ctrl + V
               </kbd>{" "}
               to paste

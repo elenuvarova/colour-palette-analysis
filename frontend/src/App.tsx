@@ -12,7 +12,9 @@ import { PaletteGrid } from "./components/PaletteGrid";
 import { Shades } from "./components/Shades";
 import { SourcePreview } from "./components/SourcePreview";
 import { Button } from "./components/ui/Button";
+import { IconButton } from "./components/ui/IconButton";
 import { PaletteSkeleton } from "./components/ui/Skeleton";
+import { Tabs } from "./components/ui/Tabs";
 import { ToastViewport } from "./components/ui/Toast";
 import type { ToastData } from "./components/ui/Toast";
 import { useCopyToClipboard } from "./hooks/useCopyToClipboard";
@@ -28,9 +30,32 @@ const DEFAULT_PARAMS: ExtractParams = {
   ignore_alpha: true,
 };
 
+function readStoredMode(): ExtractParams["mode"] {
+  try {
+    const v = localStorage.getItem("mode");
+    if (v === "fast" || v === "precision") return v;
+  } catch {
+    /* private mode etc. */
+  }
+  return DEFAULT_PARAMS.mode;
+}
+
+function readStoredFormat(): ColorFormat {
+  try {
+    const v = localStorage.getItem("format");
+    if (v === "hex" || v === "rgb" || v === "hsl" || v === "oklch") return v;
+  } catch {
+    /* ignore */
+  }
+  return "hex";
+}
+
 export default function App() {
-  const [params, setParams] = useState<ExtractParams>(DEFAULT_PARAMS);
-  const [format, setFormat] = useState<ColorFormat>("hex");
+  const [params, setParams] = useState<ExtractParams>(() => ({
+    ...DEFAULT_PARAMS,
+    mode: readStoredMode(),
+  }));
+  const [format, setFormat] = useState<ColorFormat>(readStoredFormat);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const toastId = useRef(0);
 
@@ -57,6 +82,33 @@ export default function App() {
     warmUp();
   }, []);
 
+  // Push the top-3 palette colours into CSS vars so the page tint behind
+  // everything (defined in index.css) picks up the actual extracted colours.
+  useEffect(() => {
+    if (status === "success" && data) {
+      const root = document.documentElement;
+      data.colors.slice(0, 3).forEach((c, i) => {
+        root.style.setProperty(`--palette-${i + 1}`, `${c.rgb[0]} ${c.rgb[1]} ${c.rgb[2]}`);
+      });
+    }
+  }, [status, data]);
+
+  // Persist a few user choices across visits.
+  useEffect(() => {
+    try {
+      localStorage.setItem("format", format);
+    } catch {
+      /* ignore */
+    }
+  }, [format]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("mode", params.mode);
+    } catch {
+      /* ignore */
+    }
+  }, [params.mode]);
+
   const pushToast = useCallback(
     (message: string, tone: ToastData["tone"] = "default") => {
       const id = ++toastId.current;
@@ -81,10 +133,11 @@ export default function App() {
     [copy, pushToast],
   );
 
-  // Bring the results area into view as soon as an extraction starts or
-  // finishes, so the loading state is visible right away.
+  // Scroll to results once an extraction succeeds. We deliberately don't
+  // scroll on "loading" — the skeleton reveals in place and double-scrolling
+  // is jarring if the user has already moved around.
   useEffect(() => {
-    if ((status === "loading" || status === "success") && resultsRef.current) {
+    if (status === "success" && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [status]);
@@ -175,19 +228,17 @@ export default function App() {
                 palette extractor
               </span>
             </div>
-            <button
-              type="button"
+            <IconButton
               onClick={toggleTheme}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
               title="Toggle light / dark"
-              className="grid h-9 w-9 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-ink-300 hover:text-ink-100"
             >
               {theme === "dark" ? (
                 <Sun className="h-4 w-4" />
               ) : (
                 <Moon className="h-4 w-4" />
               )}
-            </button>
+            </IconButton>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
             colour-palette-analysis
@@ -217,7 +268,7 @@ export default function App() {
         <section ref={resultsRef} className="scroll-mt-6">
           {isLoading && (
             <div className="flex flex-col gap-5">
-              <div className="card flex items-center gap-4 p-4">
+              <div className="card-compact flex items-center gap-4">
                 <Loader2 className="h-5 w-5 shrink-0 animate-spin text-accent-400" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink-100">
@@ -261,14 +312,32 @@ export default function App() {
                 onCopy={(value, label) => handleCopy(value, label)}
               />
 
-              <Shades
-                colors={data.colors}
-                onCopy={(value, label) => handleCopy(value, label)}
+              <Tabs
+                ariaLabel="Design system tools"
+                defaultActive="shades"
+                tabs={[
+                  {
+                    id: "shades",
+                    label: "Shades",
+                    content: (
+                      <Shades
+                        colors={data.colors}
+                        onCopy={(value, label) => handleCopy(value, label)}
+                      />
+                    ),
+                  },
+                  {
+                    id: "contrast",
+                    label: "Contrast",
+                    content: <ContrastMatrix colors={data.colors} />,
+                  },
+                  {
+                    id: "cvd",
+                    label: "Colour-blindness",
+                    content: <ColorBlindness colors={data.colors} />,
+                  },
+                ]}
               />
-
-              <ContrastMatrix colors={data.colors} />
-
-              <ColorBlindness colors={data.colors} />
 
               <Meta meta={data.meta} />
 
@@ -348,7 +417,7 @@ function Meta({ meta }: { meta: import("./types").ExtractMeta }) {
       {stats.map((s) => (
         <div
           key={s.label}
-          className="card flex items-center gap-3 px-4 py-3 text-sm"
+          className="card-compact flex items-center gap-3 text-sm"
         >
           <span className="text-accent-400">{s.icon}</span>
           <div className="flex flex-col">

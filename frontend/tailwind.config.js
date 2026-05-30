@@ -22,16 +22,16 @@ export default {
           950: "rgb(var(--ink-950) / <alpha-value>)",
         },
         accent: {
-          50: "#e6fbfa",
-          100: "#c2f5f3",
-          200: "#8aeae7",
-          300: "#4dd9d6",
-          400: "#1fc2c0",
-          500: "#00acaa",
-          600: "#008b8a",
-          700: "#076e6e",
-          800: "#0b5757",
-          900: "#0e4949",
+          50: "rgb(var(--accent-50) / <alpha-value>)",
+          100: "rgb(var(--accent-100) / <alpha-value>)",
+          200: "rgb(var(--accent-200) / <alpha-value>)",
+          300: "rgb(var(--accent-300) / <alpha-value>)",
+          400: "rgb(var(--accent-400) / <alpha-value>)",
+          500: "rgb(var(--accent-500) / <alpha-value>)",
+          600: "rgb(var(--accent-600) / <alpha-value>)",
+          700: "rgb(var(--accent-700) / <alpha-value>)",
+          800: "rgb(var(--accent-800) / <alpha-value>)",
+          900: "rgb(var(--accent-900) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -58,6 +58,12 @@ export default {
       borderRadius: {
         xl: "0.875rem",
         "2xl": "1.25rem",
+      },
+      fontSize: {
+        // Named steps for "tiny" sizes used in chip labels / numeric badges,
+        // so the type scale stays whitelisted (no ad-hoc text-[10/11px]).
+        "2xs": ["0.6875rem", { lineHeight: "1rem" }], // 11px
+        "3xs": ["0.625rem", { lineHeight: "0.875rem" }], // 10px
       },
       keyframes: {
         "fade-in": {

@@ -31,7 +31,7 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
   if (!src) return null;
 
   return (
-    <div className="card flex items-center gap-4 p-3">
+    <div className="card-compact flex items-center gap-4">
       {broken ? (
         <span className="grid h-16 w-16 shrink-0 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-ink-500">
           <ImageOff className="h-5 w-5" />
