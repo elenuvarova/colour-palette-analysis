@@ -1,18 +1,36 @@
 import { tonalScale } from "./palette";
 import type { PaletteColor } from "../types";
 
+/** Collapse a free-form name to a safe identifier (lowercase, dashes). */
+export function sanitizeName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Resolve per-colour identifiers: caller can pass custom names; we sanitise
+ *  them and fall back to color-1, color-2, … for empty/missing entries. */
+function resolveNames(colors: PaletteColor[], names?: string[]): string[] {
+  return colors.map((_, i) => {
+    const candidate = names?.[i] ? sanitizeName(names[i]) : "";
+    return candidate || `color-${i + 1}`;
+  });
+}
+
 /** Build "--color-1: #00ACAA;" CSS custom-property declarations. */
-export function toCssVariables(colors: PaletteColor[]): string {
-  const lines = colors.map(
-    (c, i) => `  --color-${i + 1}: ${c.hex.toUpperCase()};`,
-  );
+export function toCssVariables(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
+  const lines = colors.map((c, i) => `  --${ids[i]}: ${c.hex.toUpperCase()};`);
   return `:root {\n${lines.join("\n")}\n}`;
 }
 
 /** Build a `theme.extend.colors` fragment for tailwind.config.js. */
-export function toTailwindConfig(colors: PaletteColor[]): string {
+export function toTailwindConfig(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
   const entries = colors.map(
-    (c, i) => `        'palette-${i + 1}': '${c.hex.toUpperCase()}',`,
+    (c, i) => `        '${ids[i]}': '${c.hex.toUpperCase()}',`,
   );
   return [
     "theme: {",
@@ -26,28 +44,29 @@ export function toTailwindConfig(colors: PaletteColor[]): string {
 }
 
 /** SCSS variables: `$color-1: #00ACAA;`. */
-export function toScss(colors: PaletteColor[]): string {
+export function toScss(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
   return colors
-    .map((c, i) => `$color-${i + 1}: ${c.hex.toUpperCase()};`)
+    .map((c, i) => `$${ids[i]}: ${c.hex.toUpperCase()};`)
     .join("\n");
 }
 
 /** Tailwind v4 `@theme` block with flat palette colours. */
-export function toTailwindV4Theme(colors: PaletteColor[]): string {
-  const lines = colors.map(
-    (c, i) => `  --color-palette-${i + 1}: ${c.hex.toUpperCase()};`,
-  );
+export function toTailwindV4Theme(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
+  const lines = colors.map((c, i) => `  --color-${ids[i]}: ${c.hex.toUpperCase()};`);
   return `@theme {\n${lines.join("\n")}\n}`;
 }
 
 /** Tailwind `theme.extend.colors` with a full 50–950 scale per colour. */
-export function toTailwindScales(colors: PaletteColor[]): string {
+export function toTailwindScales(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
   const pad = "        ";
   const entries = colors.map((c, i) => {
     const steps = tonalScale(c.hex)
       .map((s) => `${pad}  '${s.step}': '${s.hex}',`)
       .join("\n");
-    return `${pad}'color-${i + 1}': {\n${steps}\n${pad}},`;
+    return `${pad}'${ids[i]}': {\n${steps}\n${pad}},`;
   });
   return [
     "theme: {",
@@ -61,20 +80,25 @@ export function toTailwindScales(colors: PaletteColor[]): string {
 }
 
 /** W3C design-tokens JSON. */
-export function toDesignTokens(colors: PaletteColor[]): string {
+export function toDesignTokens(colors: PaletteColor[], names?: string[]): string {
+  const ids = resolveNames(colors, names);
   const palette: Record<string, { $type: "color"; $value: string }> = {};
   colors.forEach((c, i) => {
-    palette[`color-${i + 1}`] = { $type: "color", $value: c.hex.toUpperCase() };
+    palette[ids[i]] = { $type: "color", $value: c.hex.toUpperCase() };
   });
   return JSON.stringify({ palette }, null, 2);
 }
 
-/** GIMP / Inkscape `.gpl` palette. */
-export function toGimpPalette(colors: PaletteColor[]): string {
+/** GIMP / Inkscape `.gpl` palette — uses display names verbatim when given. */
+export function toGimpPalette(
+  colors: PaletteColor[],
+  displayNames?: string[],
+): string {
   const pad = (n: number) => String(n).padStart(3, " ");
   const rows = colors.map((c, i) => {
     const [r, g, b] = c.rgb;
-    return `${pad(r)} ${pad(g)} ${pad(b)}\tColor ${i + 1} ${c.hex.toUpperCase()}`;
+    const name = displayNames?.[i]?.trim() || `Color ${i + 1}`;
+    return `${pad(r)} ${pad(g)} ${pad(b)}\t${name} ${c.hex.toUpperCase()}`;
   });
   return [
     "GIMP Palette",

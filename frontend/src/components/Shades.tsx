@@ -8,10 +8,14 @@ import { SectionHeader } from "./ui/SectionHeader";
 interface ShadesProps {
   colors: PaletteColor[];
   onCopy: (value: string, label: string) => void;
+  /** Sanitised identifiers (e.g. ["primary","accent",…]) for export + labels. */
+  names?: string[];
+  /** Human display labels (e.g. ["Primary","Brand accent",…]); falls back to `names`. */
+  displayNames?: string[];
 }
 
 /** Tailwind-style 50–950 tonal scale generated from each dominant colour. */
-export function Shades({ colors, onCopy }: ShadesProps) {
+export function Shades({ colors, onCopy, names, displayNames }: ShadesProps) {
   return (
     <div className="card flex flex-col gap-4 p-6">
       <SectionHeader
@@ -22,7 +26,12 @@ export function Shades({ colors, onCopy }: ShadesProps) {
             variant="secondary"
             size="sm"
             icon={<Braces className="h-4 w-4" />}
-            onClick={() => onCopy(toTailwindScales(colors), "Tailwind colours with shades")}
+            onClick={() =>
+              onCopy(
+                toTailwindScales(colors, names),
+                "Tailwind colours with shades",
+              )
+            }
           >
             Copy Tailwind
           </Button>
@@ -32,10 +41,11 @@ export function Shades({ colors, onCopy }: ShadesProps) {
       <div className="flex flex-col gap-3">
         {colors.map((color, ci) => {
           const scale = tonalScale(color.hex);
+          const rowLabel = displayNames?.[ci] || names?.[ci] || `color-${ci + 1}`;
           return (
             <div key={`${color.hex}-${ci}`} className="flex flex-col gap-1">
               <span className="font-mono text-xs text-ink-500">
-                color-{ci + 1} · {color.hex}
+                {rowLabel} · {color.hex}
               </span>
               <div className="no-scrollbar flex gap-1 overflow-x-auto">
                 {scale.map((shade) => (

@@ -1,5 +1,5 @@
 import { Clock, ImageOff, Layers, Loader2, Moon, Sparkles, Sun } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { ColorBlindness } from "./components/ColorBlindness";
 import { ContrastMatrix } from "./components/ContrastMatrix";
@@ -11,6 +11,7 @@ import { Harmony } from "./components/Harmony";
 import { PaletteGrid } from "./components/PaletteGrid";
 import { Shades } from "./components/Shades";
 import { SourcePreview } from "./components/SourcePreview";
+import { StickyPalette } from "./components/StickyPalette";
 import { Button } from "./components/ui/Button";
 import { IconButton } from "./components/ui/IconButton";
 import { PaletteSkeleton } from "./components/ui/Skeleton";
@@ -21,6 +22,7 @@ import { useCopyToClipboard } from "./hooks/useCopyToClipboard";
 import { useExtractPalette } from "./hooks/useExtractPalette";
 import { useTheme } from "./hooks/useTheme";
 import { warmUp } from "./lib/api";
+import { sanitizeName } from "./lib/exports";
 import type { ColorFormat, ExtractParams } from "./types";
 
 const DEFAULT_PARAMS: ExtractParams = {
@@ -57,6 +59,7 @@ export default function App() {
   }));
   const [format, setFormat] = useState<ColorFormat>(readStoredFormat);
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
+  const [customNames, setCustomNames] = useState<Record<number, string>>({});
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const toastId = useRef(0);
 
@@ -75,6 +78,7 @@ export default function App() {
   const { theme, toggle: toggleTheme } = useTheme();
 
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const paletteSectionRef = useRef<HTMLDivElement | null>(null);
   const reextractTimer = useRef<number | null>(null);
 
   // Wake the free-tier backend while the user picks an image, so the first
@@ -95,6 +99,66 @@ export default function App() {
       setActiveColorIndex(null);
     }
   }, [status, data]);
+
+  // Per-palette signature so user-given names survive page refreshes for the
+  // same palette but don't bleed across different ones.
+  const paletteSignature = useMemo(
+    () => (data ? data.colors.map((c) => c.hex).join("|") : ""),
+    [data],
+  );
+
+  // Load saved names when the palette changes.
+  useEffect(() => {
+    if (!paletteSignature) {
+      setCustomNames({});
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`customNames.${paletteSignature}`);
+      setCustomNames(raw ? (JSON.parse(raw) as Record<number, string>) : {});
+    } catch {
+      setCustomNames({});
+    }
+  }, [paletteSignature]);
+
+  // Save names whenever they change.
+  useEffect(() => {
+    if (!paletteSignature) return;
+    try {
+      const key = `customNames.${paletteSignature}`;
+      if (Object.keys(customNames).length === 0) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(customNames));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [customNames, paletteSignature]);
+
+  const handleNameChange = useCallback((index: number, name: string) => {
+    setCustomNames((prev) => {
+      const next = { ...prev };
+      if (!name.trim()) delete next[index];
+      else next[index] = name.trim();
+      return next;
+    });
+  }, []);
+
+  // Sanitised identifiers (for code-style exports) and display names (for GIMP
+  // + UI labels): fall back to "color-N" / undefined when nothing is set.
+  const exportNames = useMemo(() => {
+    if (!data) return { ids: [] as string[], display: [] as string[] };
+    const ids = data.colors.map((_, i) => {
+      const raw = customNames[i];
+      const slug = raw ? sanitizeName(raw) : "";
+      return slug || `color-${i + 1}`;
+    });
+    const display = data.colors.map(
+      (_, i) => customNames[i]?.trim() || `Color ${i + 1}`,
+    );
+    return { ids, display };
+  }, [customNames, data]);
 
   // Persist a few user choices across visits.
   useEffect(() => {
@@ -298,13 +362,18 @@ export default function App() {
                   url={source.kind === "url" ? source.url : undefined}
                 />
               )}
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto] lg:items-start">
+              <div
+                ref={paletteSectionRef}
+                className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto] lg:items-start"
+              >
                 <PaletteGrid
                   colors={data.colors}
                   format={format}
                   onFormatChange={setFormat}
                   onCopy={(v) => handleCopy(v)}
                   activeIndex={activeColorIndex}
+                  customNames={customNames}
+                  onNameChange={handleNameChange}
                 />
                 <div className="flex justify-center lg:justify-end">
                   <DonutChart
@@ -325,18 +394,39 @@ export default function App() {
                 tabs={[
                   {
                     id: "shades",
-                    label: "Shades",
+                    label: (
+                      <span>
+                        Shades{" "}
+                        <span className="ml-1 font-mono text-3xs opacity-60">
+                          {data.colors.length}
+                        </span>
+                      </span>
+                    ),
                     content: (
                       <Shades
                         colors={data.colors}
                         onCopy={(value, label) => handleCopy(value, label)}
+                        names={exportNames.ids}
+                        displayNames={exportNames.display}
                       />
                     ),
                   },
                   {
                     id: "contrast",
-                    label: "Contrast",
-                    content: <ContrastMatrix colors={data.colors} />,
+                    label: (
+                      <span>
+                        Contrast{" "}
+                        <span className="ml-1 font-mono text-3xs opacity-60">
+                          {data.colors.length}×{data.colors.length}
+                        </span>
+                      </span>
+                    ),
+                    content: (
+                      <ContrastMatrix
+                        colors={data.colors}
+                        onCopy={(value, label) => handleCopy(value, label)}
+                      />
+                    ),
                   },
                   {
                     id: "cvd",
@@ -353,6 +443,8 @@ export default function App() {
                 onCopy={(value, label) => handleCopy(value, label)}
                 onNotify={(msg) => pushToast(msg)}
                 onError={(msg) => pushToast(msg, "error")}
+                names={exportNames.ids}
+                displayNames={exportNames.display}
               />
             </div>
           )}
@@ -368,6 +460,16 @@ export default function App() {
       </div>
 
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
+
+      {status === "success" && data && (
+        <StickyPalette
+          colors={data.colors}
+          format={format}
+          onFormatChange={setFormat}
+          onCopy={(v) => handleCopy(v)}
+          targetRef={paletteSectionRef}
+        />
+      )}
     </div>
   );
 }

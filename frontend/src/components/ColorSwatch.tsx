@@ -1,5 +1,7 @@
 import { clsx } from "clsx";
 import { Check, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { nearestColorName } from "../lib/colorNames";
 import { contrastText, formatColor } from "../lib/formats";
 import type { ColorFormat, PaletteColor } from "../types";
@@ -11,28 +13,76 @@ interface ColorSwatchProps {
   proportional?: boolean;
   /** Mirror highlight from the donut (focus/hover/pin). */
   active?: boolean;
+  /** Index in the palette — used to stagger the proportional-strip reveal. */
+  index?: number;
+  /** User-given name (card variant). When set, replaces the auto colour name. */
+  customName?: string;
+  /** Notified when the user renames the colour (card variant only). */
+  onNameChange?: (name: string) => void;
   onCopy: (value: string) => void;
   justCopied?: boolean;
 }
+
+/** Below this share, the segment is too narrow to read any text — drop labels
+ *  and keep just the colour (full info still in the tooltip). */
+const HIDE_TEXT_BELOW_PCT = 6;
+const REVEAL_STAGGER_MS = 40;
 
 export function ColorSwatch({
   color,
   format,
   proportional,
   active,
+  index = 0,
+  customName,
+  onNameChange,
   onCopy,
   justCopied,
 }: ColorSwatchProps) {
   const fg = contrastText(color.rgb);
   const value = formatColor(color, format);
   const pct = `${color.percentage.toFixed(1)}%`;
-  const name = nearestColorName(color.hex);
+  const autoName = nearestColorName(color.hex);
+  const displayName = customName?.trim() || autoName;
   const a11yLabel = `Copy ${value}, ${color.percentage.toFixed(1)} percent`;
+
+  // Inline-rename state for the card variant.
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(customName ?? "");
+  useEffect(() => {
+    if (!editing) setDraft(customName ?? "");
+  }, [customName, editing]);
+
+  const commitName = () => {
+    onNameChange?.(draft.trim());
+    setEditing(false);
+  };
+  const cancelEdit = () => {
+    setDraft(customName ?? "");
+    setEditing(false);
+  };
+
+  // Reveal animation for the proportional strip: start at 0 width on first
+  // mount, transition to the real share with a per-index stagger so the strip
+  // "grows in" as the palette lands. Hooks live at the top level (called on
+  // every render) regardless of which branch we render below.
+  const targetBasis = `${Math.max(color.percentage, 2)}%`;
+  const [basis, setBasis] = useState(proportional ? "0%" : targetBasis);
+  useEffect(() => {
+    if (!proportional) return;
+    const id = window.setTimeout(() => setBasis(targetBasis), index * REVEAL_STAGGER_MS);
+    return () => window.clearTimeout(id);
+    // Re-trigger only when the swatch's identity changes (its key remounts it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Proportional strip: one segment per colour, width driven by its share.
   // Text stays on a single line and truncates so narrow segments never wrap
-  // or overflow; the detailed cards below show the full value.
+  // or overflow; below HIDE_TEXT_BELOW_PCT we drop labels entirely so tiny
+  // slivers stay clean (full info is still in the tooltip + the cards below).
   if (proportional) {
+    const showText = color.percentage >= HIDE_TEXT_BELOW_PCT;
+
     return (
       <button
         type="button"
@@ -42,30 +92,48 @@ export function ColorSwatch({
         style={{
           backgroundColor: color.hex,
           color: fg,
-          flexBasis: `${Math.max(color.percentage, 2)}%`,
-          // Use the swatch's own contrast colour for the active outline so it
-          // stays visible on any background; sit it inside the swatch via
-          // negative offset (ring-offset disappears on full-bleed colours).
+          flexBasis: basis,
+          transition: "flex-basis 0.55s cubic-bezier(0.16, 1, 0.3, 1)",
           outline: active ? `2px solid ${fg}` : undefined,
           outlineOffset: active ? "-3px" : undefined,
         }}
         className="group relative flex min-w-[40px] flex-1 flex-col justify-between gap-1 overflow-hidden px-2.5 py-4 text-left first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px] sm:px-3"
       >
-        <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
-          {value}
-        </span>
-        <span className="block w-full truncate font-mono text-2xs tabular-nums opacity-80">
-          {pct}
-        </span>
+        {showText && (
+          <>
+            <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
+              {value}
+            </span>
+            <span className="block w-full truncate font-mono text-2xs tabular-nums opacity-80">
+              {pct}
+            </span>
+          </>
+        )}
       </button>
     );
   }
 
-  // Detailed card: full value (wraps cleanly for long OKLCH strings) + share.
+  // Detailed card: click anywhere to copy the value; the name is its own
+  // inline-editable target. Root is a div+role=button so we can nest an
+  // <input> while editing without invalid <button> nesting.
+  const cardCopy = () => {
+    if (editing) return;
+    onCopy(value);
+  };
+  const cardKey = (e: ReactKeyboardEvent) => {
+    if (editing) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onCopy(value);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => onCopy(value)}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={cardCopy}
+      onKeyDown={cardKey}
       title={`Copy ${value}`}
       aria-label={a11yLabel}
       style={{
@@ -75,7 +143,7 @@ export function ColorSwatch({
         outlineOffset: active ? "-3px" : undefined,
       }}
       className={clsx(
-        "group relative flex flex-col justify-between gap-2 overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-0.5",
+        "group relative flex cursor-pointer flex-col justify-between gap-2 overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-2",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -94,13 +162,45 @@ export function ColorSwatch({
         </span>
       </div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate text-2xs opacity-70" title={name}>
-          {name}
-        </span>
+        {editing ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitName();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEdit();
+              }
+            }}
+            onBlur={commitName}
+            placeholder={autoName}
+            aria-label="Rename this colour"
+            style={{ color: fg }}
+            className="min-w-0 flex-1 truncate border-b border-current/40 bg-transparent text-2xs outline-none placeholder:opacity-50"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditing(true);
+            }}
+            title={customName ? `Rename (${autoName})` : "Rename"}
+            className="min-w-0 truncate text-2xs opacity-70 hover:opacity-100"
+          >
+            {displayName}
+          </button>
+        )}
         <span className="shrink-0 font-mono text-2xs tabular-nums opacity-80">
           {pct}
         </span>
       </div>
-    </button>
+    </div>
   );
 }

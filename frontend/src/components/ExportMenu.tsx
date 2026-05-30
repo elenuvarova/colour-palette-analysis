@@ -32,6 +32,10 @@ interface ExportMenuProps {
   onCopy: (value: string, label: string) => void;
   onNotify: (message: string) => void;
   onError: (message: string) => void;
+  /** Sanitised identifiers for code-style exports (CSS / Tailwind / SCSS / tokens). */
+  names?: string[];
+  /** Free-form display names for the GIMP palette. */
+  displayNames?: string[];
 }
 
 export function ExportMenu({
@@ -39,6 +43,8 @@ export function ExportMenu({
   onCopy,
   onNotify,
   onError,
+  names,
+  displayNames,
 }: ExportMenuProps) {
   const handlePng = async () => {
     try {
@@ -76,7 +82,7 @@ export function ExportMenu({
             variant="secondary"
             size="sm"
             icon={<Code2 className="h-4 w-4" />}
-            onClick={() => onCopy(toCssVariables(colors), "CSS variables")}
+            onClick={() => onCopy(toCssVariables(colors, names), "CSS variables")}
           >
             CSS variables
           </Button>
@@ -84,7 +90,7 @@ export function ExportMenu({
             variant="secondary"
             size="sm"
             icon={<Braces className="h-4 w-4" />}
-            onClick={() => onCopy(toTailwindConfig(colors), "Tailwind config")}
+            onClick={() => onCopy(toTailwindConfig(colors, names), "Tailwind config")}
           >
             Tailwind config
           </Button>
@@ -92,7 +98,7 @@ export function ExportMenu({
             variant="secondary"
             size="sm"
             icon={<Braces className="h-4 w-4" />}
-            onClick={() => onCopy(toTailwindV4Theme(colors), "Tailwind v4 @theme")}
+            onClick={() => onCopy(toTailwindV4Theme(colors, names), "Tailwind v4 @theme")}
           >
             Tailwind v4 @theme
           </Button>
@@ -100,7 +106,7 @@ export function ExportMenu({
             variant="secondary"
             size="sm"
             icon={<Code2 className="h-4 w-4" />}
-            onClick={() => onCopy(toScss(colors), "SCSS variables")}
+            onClick={() => onCopy(toScss(colors, names), "SCSS variables")}
           >
             SCSS variables
           </Button>
@@ -145,7 +151,7 @@ export function ExportMenu({
             size="sm"
             icon={<FileJson className="h-4 w-4" />}
             onClick={() =>
-              downloadText(toDesignTokens(colors), "tokens.json", "application/json")
+              downloadText(toDesignTokens(colors, names), "tokens.json", "application/json")
             }
           >
             Design tokens
@@ -163,7 +169,7 @@ export function ExportMenu({
             size="sm"
             icon={<Palette className="h-4 w-4" />}
             onClick={() =>
-              downloadText(toGimpPalette(colors), "palette.gpl", "text/plain")
+              downloadText(toGimpPalette(colors, displayNames), "palette.gpl", "text/plain")
             }
           >
             .gpl (GIMP)

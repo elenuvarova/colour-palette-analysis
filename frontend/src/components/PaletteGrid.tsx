@@ -12,6 +12,9 @@ interface PaletteGridProps {
   onCopy: (value: string) => void;
   /** Index of the colour currently active in the donut (hover/focus/pin). */
   activeIndex?: number | null;
+  /** User-given names for each colour (sparse — empty means use the default). */
+  customNames?: Record<number, string>;
+  onNameChange?: (index: number, name: string) => void;
 }
 
 export function PaletteGrid({
@@ -20,6 +23,8 @@ export function PaletteGrid({
   onFormatChange,
   onCopy,
   activeIndex,
+  customNames,
+  onNameChange,
 }: PaletteGridProps) {
   // Track which swatch was most recently copied so we can flash a checkmark.
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -49,14 +54,16 @@ export function PaletteGrid({
         }
       />
 
-      {/* Proportional strip */}
-      <div className="flex w-full overflow-hidden rounded-xl">
+      {/* Proportional strip — key includes all hexes so swapping the palette
+          remounts the swatches and re-triggers the reveal animation. */}
+      <div className="flex w-full overflow-hidden rounded-xl" key={colors.map((c) => c.hex).join("|")}>
         {colors.map((color, i) => (
           <ColorSwatch
             key={`${color.hex}-${i}`}
             color={color}
             format={format}
             proportional
+            index={i}
             justCopied={copiedIndex === i}
             active={activeIndex === i}
             onCopy={() => handleCopy(i, color)}
@@ -73,6 +80,8 @@ export function PaletteGrid({
             format={format}
             justCopied={copiedIndex === i}
             active={activeIndex === i}
+            customName={customNames?.[i]}
+            onNameChange={(name) => onNameChange?.(i, name)}
             onCopy={() => handleCopy(i, color)}
           />
         ))}
