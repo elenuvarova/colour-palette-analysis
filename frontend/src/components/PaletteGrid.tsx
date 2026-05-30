@@ -10,6 +10,8 @@ interface PaletteGridProps {
   format: ColorFormat;
   onFormatChange: (format: ColorFormat) => void;
   onCopy: (value: string) => void;
+  /** Index of the colour currently active in the donut (hover/focus/pin). */
+  activeIndex?: number | null;
 }
 
 export function PaletteGrid({
@@ -17,6 +19,7 @@ export function PaletteGrid({
   format,
   onFormatChange,
   onCopy,
+  activeIndex,
 }: PaletteGridProps) {
   // Track which swatch was most recently copied so we can flash a checkmark.
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -55,6 +58,7 @@ export function PaletteGrid({
             format={format}
             proportional
             justCopied={copiedIndex === i}
+            active={activeIndex === i}
             onCopy={() => handleCopy(i, color)}
           />
         ))}
@@ -68,6 +72,7 @@ export function PaletteGrid({
             color={color}
             format={format}
             justCopied={copiedIndex === i}
+            active={activeIndex === i}
             onCopy={() => handleCopy(i, color)}
           />
         ))}

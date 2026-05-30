@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { Pin } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { KeyboardEvent } from "react";
 import type { PaletteColor } from "../types";
 
 interface DonutChartProps {
   colors: PaletteColor[];
   size?: number;
   thickness?: number;
+  /** Notified whenever the visually-active segment changes (hover/focus/pin). */
+  onActiveChange?: (index: number | null) => void;
 }
 
 interface Segment {
@@ -15,16 +19,26 @@ interface Segment {
 }
 
 /**
- * Pure-SVG donut chart. Each colour is a stroked circle segment laid out with
- * `stroke-dasharray` / `stroke-dashoffset` around a single shared circle — no
- * charting library. Hovering a segment reveals a tooltip with hex + %.
+ * Pure-SVG donut. Mouse hovers a segment; keyboard cycles with arrow keys
+ * (Tab to focus the donut); click or Enter pins the active segment so it
+ * stays selected while you mouse elsewhere; Escape clears the pin.
  */
 export function DonutChart({
   colors,
   size = 220,
   thickness = 28,
+  onActiveChange,
 }: DonutChartProps) {
   const [hover, setHover] = useState<number | null>(null);
+  const [kbd, setKbd] = useState<number | null>(null);
+  const [pinned, setPinned] = useState<number | null>(null);
+
+  // Reset transient state when the palette changes underneath us.
+  useEffect(() => {
+    setHover(null);
+    setKbd(null);
+    setPinned(null);
+  }, [colors]);
 
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -36,67 +50,107 @@ export function DonutChart({
   const segments: Segment[] = colors.map((color, index) => {
     const fraction = color.percentage / total;
     const length = fraction * circumference;
-    // Small gap between segments for definition, except for tiny slices.
     const gap = length > 6 ? 1.5 : 0;
     const dasharray = `${Math.max(length - gap, 0)} ${circumference - Math.max(length - gap, 0)}`;
-    // Offset rotates each segment to start where the previous ended.
     const dashoffset = -cumulative * circumference;
     cumulative += fraction;
     return { color, index, dasharray, dashoffset };
   });
 
-  const active = hover != null ? colors[hover] : null;
+  const active = pinned ?? hover ?? kbd;
+  const activeColor = active != null ? colors[active] : null;
+  const isPinned = pinned != null;
+
+  // Emit the active index up so PaletteGrid can highlight the matching swatch.
+  useEffect(() => {
+    onActiveChange?.(active);
+  }, [active, onActiveChange]);
+
+  const togglePin = (i: number) => {
+    setPinned((p) => (p === i ? null : i));
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (colors.length === 0) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      setKbd((cur) => ((cur ?? -1) + 1) % colors.length);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setKbd((cur) => ((cur ?? 0) - 1 + colors.length) % colors.length);
+    } else if (e.key === "Enter" || e.key === " ") {
+      if (active != null) {
+        e.preventDefault();
+        togglePin(active);
+      }
+    } else if (e.key === "Escape" && pinned != null) {
+      e.preventDefault();
+      e.stopPropagation(); // don't bubble to App's global Esc → reset
+      setPinned(null);
+    }
+  };
 
   return (
     <div
-      className="relative inline-flex items-center justify-center"
+      className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
       style={{ width: size, height: size }}
+      tabIndex={0}
+      role="group"
+      aria-label={
+        `Palette proportions donut, ${colors.length} segments. ` +
+        "Arrow keys to focus, Enter to pin, Escape to clear."
+      }
+      onKeyDown={onKeyDown}
+      onBlur={() => setKbd(null)}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        role="img"
-        aria-label="Colour proportions donut chart"
-      >
-        {/* Rotate so the first segment starts at 12 o'clock. */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <g transform={`rotate(-90 ${center} ${center})`}>
-          {segments.map((seg) => (
-            <circle
-              key={`${seg.color.hex}-${seg.index}`}
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke={seg.color.hex}
-              strokeWidth={hover === seg.index ? thickness + 6 : thickness}
-              strokeDasharray={seg.dasharray}
-              strokeDashoffset={seg.dashoffset}
-              style={{
-                transition: "stroke-width 0.15s ease",
-                cursor: "pointer",
-                opacity: hover == null || hover === seg.index ? 1 : 0.45,
-              }}
-              onMouseEnter={() => setHover(seg.index)}
-              onMouseLeave={() => setHover(null)}
-            />
-          ))}
+          {segments.map((seg) => {
+            const isActive = active === seg.index;
+            const isHere = pinned === seg.index;
+            const stroke =
+              isHere ? thickness + 8 : isActive ? thickness + 6 : thickness;
+            return (
+              <circle
+                key={`${seg.color.hex}-${seg.index}`}
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={seg.color.hex}
+                strokeWidth={stroke}
+                strokeDasharray={seg.dasharray}
+                strokeDashoffset={seg.dashoffset}
+                style={{
+                  transition: "stroke-width 0.15s ease",
+                  cursor: "pointer",
+                  opacity: active == null || isActive ? 1 : 0.45,
+                }}
+                onMouseEnter={() => setHover(seg.index)}
+                onMouseLeave={() => setHover(null)}
+                onClick={() => togglePin(seg.index)}
+              />
+            );
+          })}
         </g>
       </svg>
 
       {/* Center label */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        {active ? (
+        {activeColor ? (
           <>
             <span
               className="h-4 w-4 rounded-full border border-ink-700"
-              style={{ backgroundColor: active.hex }}
+              style={{ backgroundColor: activeColor.hex }}
             />
-            <span className="mt-1 font-mono text-sm font-semibold text-ink-100">
-              {active.hex.toUpperCase()}
+            <span className="mt-1 inline-flex items-center gap-1 font-mono text-sm font-semibold text-ink-100">
+              {activeColor.hex.toUpperCase()}
+              {isPinned && active === pinned && (
+                <Pin className="h-3 w-3 text-accent-400" aria-label="pinned" />
+              )}
             </span>
             <span className="font-mono text-xs text-ink-400">
-              {active.percentage.toFixed(1)}%
+              {activeColor.percentage.toFixed(1)}%
             </span>
           </>
         ) : (

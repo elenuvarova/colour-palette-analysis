@@ -56,6 +56,7 @@ export default function App() {
     mode: readStoredMode(),
   }));
   const [format, setFormat] = useState<ColorFormat>(readStoredFormat);
+  const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const toastId = useRef(0);
 
@@ -84,12 +85,14 @@ export default function App() {
 
   // Push the top-3 palette colours into CSS vars so the page tint behind
   // everything (defined in index.css) picks up the actual extracted colours.
+  // Also clear any donut pin/highlight that pointed at the previous palette.
   useEffect(() => {
     if (status === "success" && data) {
       const root = document.documentElement;
       data.colors.slice(0, 3).forEach((c, i) => {
         root.style.setProperty(`--palette-${i + 1}`, `${c.rgb[0]} ${c.rgb[1]} ${c.rgb[2]}`);
       });
+      setActiveColorIndex(null);
     }
   }, [status, data]);
 
@@ -301,9 +304,13 @@ export default function App() {
                   format={format}
                   onFormatChange={setFormat}
                   onCopy={(v) => handleCopy(v)}
+                  activeIndex={activeColorIndex}
                 />
                 <div className="flex justify-center lg:justify-end">
-                  <DonutChart colors={data.colors} />
+                  <DonutChart
+                    colors={data.colors}
+                    onActiveChange={setActiveColorIndex}
+                  />
                 </div>
               </div>
 

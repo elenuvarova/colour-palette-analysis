@@ -9,6 +9,8 @@ interface ColorSwatchProps {
   format: ColorFormat;
   /** When true, sizes the swatch by percentage (proportional strip mode). */
   proportional?: boolean;
+  /** Mirror highlight from the donut (focus/hover/pin). */
+  active?: boolean;
   onCopy: (value: string) => void;
   justCopied?: boolean;
 }
@@ -17,6 +19,7 @@ export function ColorSwatch({
   color,
   format,
   proportional,
+  active,
   onCopy,
   justCopied,
 }: ColorSwatchProps) {
@@ -40,6 +43,11 @@ export function ColorSwatch({
           backgroundColor: color.hex,
           color: fg,
           flexBasis: `${Math.max(color.percentage, 2)}%`,
+          // Use the swatch's own contrast colour for the active outline so it
+          // stays visible on any background; sit it inside the swatch via
+          // negative offset (ring-offset disappears on full-bleed colours).
+          outline: active ? `2px solid ${fg}` : undefined,
+          outlineOffset: active ? "-3px" : undefined,
         }}
         className="group relative flex min-w-[40px] flex-1 flex-col justify-between gap-1 overflow-hidden px-2.5 py-4 text-left first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px] sm:px-3"
       >
@@ -60,7 +68,12 @@ export function ColorSwatch({
       onClick={() => onCopy(value)}
       title={`Copy ${value}`}
       aria-label={a11yLabel}
-      style={{ backgroundColor: color.hex, color: fg }}
+      style={{
+        backgroundColor: color.hex,
+        color: fg,
+        outline: active ? `2px solid ${fg}` : undefined,
+        outlineOffset: active ? "-3px" : undefined,
+      }}
       className={clsx(
         "group relative flex flex-col justify-between gap-2 overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-0.5",
       )}
