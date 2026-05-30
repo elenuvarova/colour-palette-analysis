@@ -43,6 +43,14 @@ export function DonutChart({
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
+  // Active/pinned segments grow their stroke by up to 8px, so the painted edge
+  // reaches radius + (thickness + 8) / 2 = center + 4 — flush with the box at
+  // the cardinal points and clipped by the SVG's default overflow: hidden. We
+  // pad the viewBox AND the rendered box by the same amount so the donut keeps
+  // its full diameter (1 unit = 1px) while gaining a transparent margin all
+  // around. `box` is the on-screen square; geometry stays centred at `center`.
+  const pad = 8;
+  const box = size + pad * 2;
 
   const total = colors.reduce((sum, c) => sum + c.percentage, 0) || 1;
 
@@ -93,7 +101,7 @@ export function DonutChart({
   return (
     <div
       className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
-      style={{ width: size, height: size }}
+      style={{ width: box, height: box }}
       tabIndex={0}
       role="group"
       aria-label={
@@ -103,7 +111,12 @@ export function DonutChart({
       onKeyDown={onKeyDown}
       onBlur={() => setKbd(null)}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+      <svg
+        width={box}
+        height={box}
+        viewBox={`${-pad} ${-pad} ${box} ${box}`}
+        aria-hidden="true"
+      >
         <g transform={`rotate(-90 ${center} ${center})`}>
           {segments.map((seg) => {
             const isActive = active === seg.index;

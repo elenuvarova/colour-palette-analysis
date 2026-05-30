@@ -23,12 +23,6 @@ interface ColorSwatchProps {
   justCopied?: boolean;
 }
 
-// Tiered text visibility for the proportional strip. Thresholds account for
-// the min-w-[40px] floor — below ~6% the segment is pinned to the floor and
-// even "X.X%" overflows after padding, so we hide all text. Above 12% there's
-// reliable room for both the hex and the percent.
-const HIDE_HEX_BELOW_PCT = 12;
-const HIDE_ALL_BELOW_PCT = 7;
 const REVEAL_STAGGER_MS = 40;
 
 export function ColorSwatch({
@@ -79,43 +73,26 @@ export function ColorSwatch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Proportional strip: one segment per colour, width driven by its share.
-  // Text stays on a single line and truncates so narrow segments never wrap
-  // or overflow; below HIDE_TEXT_BELOW_PCT we drop labels entirely so tiny
-  // slivers stay clean (full info is still in the tooltip + the cards below).
+  // Proportional strip: one bare colour segment per colour, width driven by its
+  // share. We render no in-segment text — the slivers get as narrow as 40px, so
+  // any label would truncate to noise like "10.…". The hex + percent live in
+  // the hover tooltip and the detailed cards below instead.
   if (proportional) {
-    const showAny = color.percentage >= HIDE_ALL_BELOW_PCT;
-    const showHex = color.percentage >= HIDE_HEX_BELOW_PCT;
-
     return (
       <button
         type="button"
         onClick={() => onCopy(value)}
-        title={`Copy ${value} — ${pct}`}
+        title={`${value} — ${pct} · click to copy`}
         aria-label={a11yLabel}
         style={{
           backgroundColor: color.hex,
-          color: fg,
           flexBasis: basis,
           transition: "flex-basis 0.55s cubic-bezier(0.16, 1, 0.3, 1)",
           outline: active ? `2px solid ${fg}` : undefined,
           outlineOffset: active ? "-3px" : undefined,
         }}
-        className="group relative flex min-w-[40px] flex-1 flex-col justify-between gap-1 overflow-hidden px-2.5 py-4 text-left first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px] sm:px-3"
-      >
-        {showAny && (
-          <>
-            {showHex && (
-              <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
-                {value}
-              </span>
-            )}
-            <span className="block w-full truncate font-mono text-2xs tabular-nums opacity-80">
-              {pct}
-            </span>
-          </>
-        )}
-      </button>
+        className="group relative h-16 min-w-[40px] flex-1 overflow-hidden first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px]"
+      />
     );
   }
 
