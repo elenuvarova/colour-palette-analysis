@@ -23,9 +23,12 @@ interface ColorSwatchProps {
   justCopied?: boolean;
 }
 
-/** Below this share, the segment is too narrow to read any text — drop labels
- *  and keep just the colour (full info still in the tooltip). */
-const HIDE_TEXT_BELOW_PCT = 6;
+// Tiered text visibility for the proportional strip:
+//   wide  — show hex + %
+//   mid   — show only % (the short label that always fits)
+//   tiny  — show nothing (colour only; full info in tooltip + cards below)
+const HIDE_HEX_BELOW_PCT = 10;
+const HIDE_ALL_BELOW_PCT = 4;
 const REVEAL_STAGGER_MS = 40;
 
 export function ColorSwatch({
@@ -81,7 +84,8 @@ export function ColorSwatch({
   // or overflow; below HIDE_TEXT_BELOW_PCT we drop labels entirely so tiny
   // slivers stay clean (full info is still in the tooltip + the cards below).
   if (proportional) {
-    const showText = color.percentage >= HIDE_TEXT_BELOW_PCT;
+    const showAny = color.percentage >= HIDE_ALL_BELOW_PCT;
+    const showHex = color.percentage >= HIDE_HEX_BELOW_PCT;
 
     return (
       <button
@@ -99,11 +103,13 @@ export function ColorSwatch({
         }}
         className="group relative flex min-w-[40px] flex-1 flex-col justify-between gap-1 overflow-hidden px-2.5 py-4 text-left first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px] sm:px-3"
       >
-        {showText && (
+        {showAny && (
           <>
-            <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
-              {value}
-            </span>
+            {showHex && (
+              <span className="block w-full truncate font-mono text-xs font-semibold tabular-nums sm:text-sm">
+                {value}
+              </span>
+            )}
             <span className="block w-full truncate font-mono text-2xs tabular-nums opacity-80">
               {pct}
             </span>
