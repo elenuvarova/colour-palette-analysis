@@ -1,4 +1,4 @@
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import { ALL_FORMATS, FORMAT_LABELS, contrastText, formatColor } from "../lib/formats";
@@ -11,6 +11,8 @@ interface StickyPaletteProps {
   format: ColorFormat;
   onFormatChange: (f: ColorFormat) => void;
   onCopy: (value: string) => void;
+  /** Clears the current palette/source and returns to the dropzone. */
+  onReset: () => void;
   /** Ref to the main PaletteGrid wrapper — when it scrolls out of view the
    *  sticky bar slides into the top of the viewport. */
   targetRef: RefObject<HTMLElement | null>;
@@ -23,6 +25,7 @@ export function StickyPalette({
   format,
   onFormatChange,
   onCopy,
+  onReset,
   targetRef,
 }: StickyPaletteProps) {
   const [visible, setVisible] = useState(false);
@@ -88,6 +91,18 @@ export function StickyPalette({
             aria-label="Scroll to top"
           >
             <ArrowUp className="h-4 w-4" />
+          </IconButton>
+          <IconButton
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              onReset();
+            }}
+            aria-label="New image"
+            title="Start over with a new image"
+          >
+            <RotateCcw className="h-4 w-4" />
           </IconButton>
         </div>
       </div>

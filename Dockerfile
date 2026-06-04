@@ -28,7 +28,9 @@ RUN chmod +x /start.sh
 
 EXPOSE 80
 
+# Probe through nginx on :80 (not uvicorn:8000 directly) so a dead public
+# ingress is detected too. curl isn't in this image; python3 always is.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -sf http://127.0.0.1:8000/health || exit 1
+  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:80/health', timeout=4)" || exit 1
 
 CMD ["/start.sh"]

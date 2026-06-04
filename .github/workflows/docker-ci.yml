@@ -1,0 +1,74 @@
+name: docker-ci
+
+# Builds and smoke-tests the single container that actually ships
+# (nginx serving the SPA + proxying /api and /health to uvicorn).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "nginx.conf"
+      - "start.sh"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/docker-ci.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "nginx.conf"
+      - "start.sh"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/docker-ci.yml"
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t chroma .
+
+      - name: Run container
+        run: docker run -d -p 8080:80 --name chroma chroma
+
+      - name: Wait for container to report healthy
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' chroma)
+            echo "health: $status (attempt $i)"
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            if [ "$status" = "unhealthy" ]; then break; fi
+            sleep 5
+          done
+          echo "Container did not become healthy in time."
+          docker logs chroma
+          exit 1
+
+      - name: Smoke test - /health returns 200 through nginx
+        run: curl -fsS http://localhost:8080/health
+
+      - name: Smoke test - SPA index.html served on /
+        run: |
+          body=$(curl -fsS http://localhost:8080/)
+          echo "$body" | grep -qi "<div id=\"root\"" \
+            || { echo "index.html did not contain the SPA root element"; exit 1; }
+
+      - name: Smoke test - POST /api/extract with a generated fixture image
+        run: |
+          # 4x4 solid-colour PNG, no external fixtures needed.
+          python3 -c "from PIL import Image; Image.new('RGB',(4,4),(123,111,254)).save('fixture.png')"
+          curl -fsS -F "file=@fixture.png;type=image/png" \
+            http://localhost:8080/api/extract | grep -q '"colors"' \
+            || { echo "/api/extract did not return a palette"; exit 1; }
+
+      - name: Assert final health status is healthy
+        run: |
+          status=$(docker inspect --format '{{.State.Health.Status}}' chroma)
+          echo "final health: $status"
+          [ "$status" = "healthy" ] || { docker logs chroma; exit 1; }
+
+      - name: Container logs (always)
+        if: always()
+        run: docker logs chroma || true

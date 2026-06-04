@@ -2,16 +2,53 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0B0C11" />
+
+    <!-- Self-hosted Inter (latin subset) — preload the single variable woff2
+         so it is in flight before the CSS parses. @font-face lives in index.css. -->
+    <link
+      rel="preload"
+      href="/fonts/inter-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <title>Chroma — colour palettes by true pixel proportion</title>
+    <link rel="canonical" href="https://palette.ontwrpn.com" />
     <meta
       name="description"
-      content="Extract dominant colours from any image, with proportions."
+      content="Extract a colour palette from any image, URL, or website — with the true pixel proportion of every shade. HEX/RGB/HSL/OKLCH, WCAG contrast, and one-click export."
     />
-    <title>colour-palette-analysis</title>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chroma" />
+    <meta property="og:title" content="Chroma — colour palettes by true pixel proportion" />
+    <meta
+      property="og:description"
+      content="Dominant colours and their exact share — from any image, URL, or website."
+    />
+    <meta property="og:url" content="https://palette.ontwrpn.com" />
+    <meta property="og:image" content="https://palette.ontwrpn.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Chroma — a proportional colour strip showing dominant shades and their exact share."
+    />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chroma — colour palettes by true pixel proportion" />
+    <meta
+      name="twitter:description"
+      content="Dominant colours and their exact share — from any image, URL, or website."
+    />
+    <meta name="twitter:image" content="https://palette.ontwrpn.com/og.png" />
     <script>
       // Apply the saved/preferred theme before paint to avoid a flash.
       (function () {

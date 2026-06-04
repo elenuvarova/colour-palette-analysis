@@ -1,5 +1,6 @@
 import { ImageOff, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { IconButton } from "./ui/IconButton";
 
 interface SourcePreviewProps {
@@ -18,6 +19,9 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(lightboxRef, lightbox && !broken);
 
   useEffect(() => {
     setBroken(false);
@@ -81,6 +85,7 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
 
       {lightbox && !broken && (
         <div
+          ref={lightboxRef}
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"

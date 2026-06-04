@@ -1,4 +1,6 @@
 import { clsx } from "clsx";
+import { useRef } from "react";
+import type { KeyboardEvent } from "react";
 
 interface Option<T extends string> {
   value: T;
@@ -13,7 +15,11 @@ interface SegmentedToggleProps<T extends string> {
   hint?: string;
 }
 
-/** Two-option segmented control (used for mode: fast/precision). */
+/**
+ * Two-option segmented control (used for mode: fast/precision). Follows the
+ * WAI-ARIA APG radio group pattern: one tab stop (the checked option), Arrow
+ * keys move and select, Home/End jump to the first/last option.
+ */
 export function SegmentedToggle<T extends string>({
   label,
   value,
@@ -21,6 +27,33 @@ export function SegmentedToggle<T extends string>({
   onChange,
   hint,
 }: SegmentedToggleProps<T>) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const select = (index: number) => {
+    const opt = options[index];
+    if (!opt) return;
+    onChange(opt.value);
+    refs.current[index]?.focus();
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const index = options.findIndex((o) => o.value === value);
+    if (index < 0) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      select((index + 1) % options.length);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      select((index - 1 + options.length) % options.length);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      select(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      select(options.length - 1);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium text-ink-200">{label}</span>
@@ -29,19 +62,24 @@ export function SegmentedToggle<T extends string>({
         aria-label={label}
         className="grid grid-cols-2 gap-1 rounded-xl border border-ink-700 bg-ink-850 p-1"
       >
-        {options.map((opt) => {
+        {options.map((opt, index) => {
           const active = opt.value === value;
           return (
             <button
               key={opt.value}
+              ref={(el) => {
+                refs.current[index] = el;
+              }}
               role="radio"
               aria-checked={active}
+              tabIndex={active ? 0 : -1}
               type="button"
               onClick={() => onChange(opt.value)}
+              onKeyDown={onKeyDown}
               className={clsx(
                 "h-9 rounded-lg text-sm font-medium transition-colors",
                 active
-                  ? "bg-accent-500 text-ink-950"
+                  ? "bg-accent-600 text-white"
                   : "text-ink-300 hover:text-ink-100",
               )}
             >
@@ -78,7 +116,7 @@ export function Switch({ label, checked, onChange, hint }: SwitchProps) {
         onClick={() => onChange(!checked)}
         className={clsx(
           "relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-          checked ? "bg-accent-500" : "bg-ink-700",
+          checked ? "bg-accent-600" : "bg-ink-700",
         )}
       >
         <span

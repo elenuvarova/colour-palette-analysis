@@ -5,8 +5,10 @@ from __future__ import annotations
 import io
 import ipaddress
 import socket
+import warnings
 from urllib.parse import urlparse
 
+import httpcore
 import httpx
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -28,8 +30,18 @@ def validate_size(data: bytes) -> None:
 def _open_and_normalise(data: bytes, ignore_alpha: bool) -> Image.Image:
     """Open raw image bytes, validate, fix orientation, and return an RGB image."""
     try:
-        img = Image.open(io.BytesIO(data))
-        img.load()
+        # Pillow emits DecompressionBombWarning above MAX_IMAGE_PIXELS and raises
+        # DecompressionBombError above 2x that. Promote the warning to an error so
+        # a pixel-flood is rejected cleanly instead of decoded.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            img = Image.open(io.BytesIO(data))
+            img.load()
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+        raise AppError(
+            "Image is too large to process safely.",
+            status_code=413,
+        ) from exc
     except (UnidentifiedImageError, OSError) as exc:
         raise AppError(
             "Couldn't read that image — it may be corrupt or not a real image file.",
@@ -69,48 +81,115 @@ def load_from_upload(data: bytes, ignore_alpha: bool) -> Image.Image:
     return _open_and_normalise(data, ignore_alpha)
 
 
-def _assert_host_allowed(host: str) -> None:
-    """Raise :class:`AppError` unless ``host`` is a safe public target (SSRF guard).
+def _ip_is_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Return True if ``ip`` is a non-public address we must refuse to reach."""
+    # Unwrap IPv4-mapped/compatible IPv6 (e.g. ::ffff:127.0.0.1) so the underlying
+    # IPv4 address is vetted, not the wrapper which would otherwise look "global".
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
 
-    Resolves the hostname and rejects private, loopback, link-local, reserved,
-    multicast, or unspecified addresses. Fails closed when resolution fails.
-    Skipped entirely when ``allow_private_hosts`` is set (local testing only).
+
+def _resolve_allowed_ips(host: str) -> list[str]:
+    """Resolve ``host`` and return its vetted public IPs, or raise :class:`AppError`.
+
+    Rejects private, loopback, link-local, reserved, multicast, or unspecified
+    addresses (including IPv4-mapped IPv6 forms). Fails closed when resolution
+    fails. Returns the raw resolved literals so the caller can pin the actual
+    connection to a vetted IP and close the DNS-rebinding TOCTOU window.
     """
-    if settings.allow_private_hosts:
-        return
     try:
-        infos = socket.getaddrinfo(host, None)
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
     except socket.gaierror as exc:
         raise AppError(
             "Couldn't resolve that URL's host — check the address is spelled correctly.",
             status_code=400,
         ) from exc
+
+    ips: list[str] = []
     for info in infos:
+        literal = info[4][0]
         try:
-            ip = ipaddress.ip_address(info[4][0])
+            ip = ipaddress.ip_address(literal)
         except ValueError as exc:
             raise AppError("Couldn't read that URL's address.", status_code=400) from exc
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
+        if _ip_is_blocked(ip):
             raise AppError(
                 "Can't fetch from a private or local address — use a public URL.",
                 status_code=400,
             )
+        if literal not in ips:
+            ips.append(literal)
+
+    if not ips:
+        raise AppError(
+            "Couldn't resolve that URL's host — check the address is spelled correctly.",
+            status_code=400,
+        )
+    return ips
+
+
+def _assert_host_allowed(host: str) -> list[str]:
+    """Vet ``host`` against the SSRF guard and return the vetted IPs.
+
+    Skipped (returns an empty list) when ``allow_private_hosts`` is set, the
+    local-development escape hatch.
+    """
+    if settings.allow_private_hosts:
+        return []
+    return _resolve_allowed_ips(host)
+
+
+class _PinnedResolverBackend(httpcore.SyncBackend):
+    """httpcore backend that pins every TCP connect to a pre-vetted IP.
+
+    httpcore passes the request's *hostname* to ``connect_tcp``; we substitute a
+    vetted IP for the actual socket connect while leaving SNI/cert validation to
+    httpcore (it derives ``server_hostname`` from the original origin). This makes
+    the IP the app vetted identical to the IP it connects to, closing the
+    DNS-rebinding TOCTOU window without a global resolver monkeypatch.
+    """
+
+    def __init__(self, pinned: dict[str, str]) -> None:
+        super().__init__()
+        self._pinned = pinned
+
+    def connect_tcp(self, host: str, port: int, *args, **kwargs):  # type: ignore[override]
+        target = self._pinned.get(host, host)
+        return super().connect_tcp(target, port, *args, **kwargs)
+
+
+def _pinned_client(host: str, ips: list[str], **kwargs) -> httpx.Client:
+    """Build an httpx client that connects ``host`` only to its vetted ``ips``.
+
+    When ``allow_private_hosts`` is set there is nothing to pin, so a plain client
+    is returned (local-development escape hatch).
+    """
+    if settings.allow_private_hosts or not ips:
+        return httpx.Client(**kwargs)
+    backend = _PinnedResolverBackend({host: ips[0]})
+    transport = httpx.HTTPTransport()
+    # Replace the pool's network backend with our pinning one. httpx 0.28 builds
+    # the pool eagerly in HTTPTransport.__init__, so we swap it in place.
+    transport._pool._network_backend = backend  # noqa: SLF001
+    return httpx.Client(transport=transport, **kwargs)
 
 
 def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
     """Fetch an image from ``url`` and normalise it.
 
     Enforces a 5s timeout, validates the content type, and rejects payloads
-    larger than the configured maximum. Refuses to fetch private/loopback
-    addresses and does not follow redirects, as an SSRF guard. Note: this does
-    not pin the resolved IP, so it is not fully DNS-rebinding-proof.
+    larger than the configured maximum. SSRF guard: refuses to fetch
+    private/loopback addresses, does not follow redirects, and pins the actual
+    TCP connection to the vetted IP so a DNS rebind between resolution and
+    connect cannot redirect us to an internal address.
     """
     if not url.lower().startswith(("http://", "https://")):
         raise AppError("URL must start with http:// or https://.", status_code=400)
@@ -122,11 +201,11 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
             "e.g. https://example.com/image.png.",
             status_code=400,
         )
-    _assert_host_allowed(host)
+    ips = _assert_host_allowed(host)
 
     try:
         with (
-            httpx.Client(timeout=5.0, follow_redirects=False) as client,
+            _pinned_client(host, ips, timeout=5.0, follow_redirects=False) as client,
             client.stream("GET", url) as response,
         ):
             if 300 <= response.status_code < 400:

@@ -1,7 +1,8 @@
 import { Check, RotateCcw, RotateCw, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { getCroppedBlob, type PixelArea } from "../lib/cropImage";
 import { Button } from "./ui/Button";
 import { IconButton } from "./ui/IconButton";
@@ -36,6 +37,9 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
   const [aspectKey, setAspectKey] = useState<number | "free">("free");
   const [pixels, setPixels] = useState<PixelArea | null>(null);
   const [busy, setBusy] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, true);
 
   const aspect = aspectKey === "free" ? naturalAspect : aspectKey;
 
@@ -83,6 +87,7 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="card flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >

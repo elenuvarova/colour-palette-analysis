@@ -1,3 +1,29 @@
+/* Self-hosted Inter (latin subset). Inter v20 ships its latin glyphs as a
+   single variable woff2, so all three weights point at the same file; the
+   browser synthesises nothing because the glyphs for each weight are inside it.
+   font-display: swap keeps text visible while the font loads. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -79,19 +79,25 @@ def extract_precision(img: Image.Image, limit: int) -> tuple[list[ColorResult], 
     arr = np.asarray(img.convert("RGB"), dtype=np.uint8).reshape(-1, 3)
     total = int(arr.shape[0])
 
-    unique = np.unique(arr, axis=0)
+    # Cluster the *unique* colours weighted by how many pixels each one covers,
+    # not every pixel. This is mathematically equivalent to clustering all pixels
+    # (sample_weight = pixel count) but runs over thousands of rows instead of
+    # hundreds of thousands. n_init=1 is safe because random_state is pinned.
+    unique, pixel_counts = np.unique(arr, axis=0, return_counts=True)
     n_unique = int(unique.shape[0])
     if n_unique == 0:
         return [], 0
 
     n_clusters = max(1, min(limit, n_unique))
 
-    lab = _rgb_to_lab(arr)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    labels = kmeans.fit_predict(lab)
+    lab_unique = _rgb_to_lab(unique)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=1)
+    labels = kmeans.fit_predict(lab_unique, sample_weight=pixel_counts)
     centroids_lab = kmeans.cluster_centers_
 
-    counts = np.bincount(labels, minlength=n_clusters)
+    # Sum the pixel counts of every unique colour assigned to each cluster, so the
+    # returned counts/percentages mean exactly what they did before the refactor.
+    counts = np.bincount(labels, weights=pixel_counts, minlength=n_clusters).astype(np.int64)
     centroids_rgb = _lab_to_rgb(centroids_lab)
 
     results: list[ColorResult] = []

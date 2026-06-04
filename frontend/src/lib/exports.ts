@@ -102,7 +102,7 @@ export function toGimpPalette(
   });
   return [
     "GIMP Palette",
-    "Name: colour-palette-analysis",
+    "Name: Chroma",
     `Columns: ${colors.length}`,
     "#",
     ...rows,
@@ -123,11 +123,16 @@ export function toSvgSwatches(colors: PaletteColor[], width = 1200, height = 200
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n${rects.join("\n")}\n</svg>\n`;
 }
 
-/** Serialise the full palette payload to pretty JSON. */
-export function toJsonString(colors: PaletteColor[]): string {
+/** Serialise the full palette payload to pretty JSON. Honours user-renamed
+ *  swatches when display names are supplied, falling back to "Color N". */
+export function toJsonString(
+  colors: PaletteColor[],
+  displayNames?: string[],
+): string {
   return JSON.stringify(
     {
-      colors: colors.map((c) => ({
+      colors: colors.map((c, i) => ({
+        name: displayNames?.[i]?.trim() || `Color ${i + 1}`,
         hex: c.hex.toUpperCase(),
         rgb: c.rgb,
         hsl: c.hsl,
@@ -273,7 +278,8 @@ function relativeLuminanceFromRgb([r, g, b]: [
  */
 export function paletteToAse(
   colors: PaletteColor[],
-  groupName = "colour-palette-analysis",
+  displayNames?: string[],
+  groupName = "Chroma",
 ): Blob {
   const chunks: Uint8Array[] = [];
 
@@ -289,7 +295,8 @@ export function paletteToAse(
 
   // --- Colour blocks ---
   colors.forEach((c, i) => {
-    chunks.push(...colorBlock(`Color ${i + 1}`, c.rgb));
+    const name = displayNames?.[i]?.trim() || `Color ${i + 1}`;
+    chunks.push(...colorBlock(name, c.rgb));
   });
 
   // --- Group end block ---

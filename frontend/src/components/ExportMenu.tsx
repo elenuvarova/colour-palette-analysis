@@ -56,7 +56,7 @@ export function ExportMenu({
 
   const handleAse = () => {
     try {
-      downloadBlob(paletteToAse(colors), "palette.ase");
+      downloadBlob(paletteToAse(colors, displayNames), "palette.ase");
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not generate the ASE file.");
     }
@@ -141,7 +141,11 @@ export function ExportMenu({
             size="sm"
             icon={<FileJson className="h-4 w-4" />}
             onClick={() =>
-              downloadText(toJsonString(colors), "palette.json", "application/json")
+              downloadText(
+                toJsonString(colors, displayNames),
+                "palette.json",
+                "application/json",
+              )
             }
           >
             .json

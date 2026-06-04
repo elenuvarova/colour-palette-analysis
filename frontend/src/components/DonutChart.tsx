@@ -69,6 +69,13 @@ export function DonutChart({
   const activeColor = active != null ? colors[active] : null;
   const isPinned = pinned != null;
 
+  // Spoken announcement for screen readers: the active segment's colour and
+  // share, plus whether it is currently pinned.
+  const liveMessage = activeColor
+    ? `${activeColor.hex.toUpperCase()}, ${activeColor.percentage.toFixed(1)} percent` +
+      (active === pinned ? ", pinned" : "")
+    : "";
+
   // Emit the active index up so PaletteGrid can highlight the matching swatch.
   useEffect(() => {
     onActiveChange?.(active);
@@ -99,84 +106,96 @@ export function DonutChart({
   };
 
   return (
-    <div
-      className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
-      style={{ width: box, height: box }}
-      tabIndex={0}
-      role="group"
-      aria-label={
-        `Palette proportions donut, ${colors.length} segments. ` +
-        "Arrow keys to focus, Enter to pin, Escape to clear."
-      }
-      onKeyDown={onKeyDown}
-      onBlur={() => setKbd(null)}
-    >
-      <svg
-        width={box}
-        height={box}
-        viewBox={`${-pad} ${-pad} ${box} ${box}`}
-        aria-hidden="true"
+    <div className="inline-flex flex-col items-center gap-2">
+      <div
+        className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
+        style={{ width: box, height: box }}
+        tabIndex={0}
+        role="group"
+        aria-label={
+          `Palette proportions donut, ${colors.length} segments. ` +
+          "Arrow keys to focus, Enter to pin, Escape to clear."
+        }
+        onKeyDown={onKeyDown}
+        onBlur={() => setKbd(null)}
       >
-        <g transform={`rotate(-90 ${center} ${center})`}>
-          {segments.map((seg) => {
-            const isActive = active === seg.index;
-            const isHere = pinned === seg.index;
-            const stroke =
-              isHere ? thickness + 8 : isActive ? thickness + 6 : thickness;
-            return (
-              <circle
-                key={`${seg.color.hex}-${seg.index}`}
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="none"
-                stroke={seg.color.hex}
-                strokeWidth={stroke}
-                strokeDasharray={seg.dasharray}
-                strokeDashoffset={seg.dashoffset}
-                style={{
-                  transition: "stroke-width 0.15s ease",
-                  cursor: "pointer",
-                  opacity: active == null || isActive ? 1 : 0.45,
-                }}
-                onMouseEnter={() => setHover(seg.index)}
-                onMouseLeave={() => setHover(null)}
-                onClick={() => togglePin(seg.index)}
-              />
-            );
-          })}
-        </g>
-      </svg>
+        <svg
+          width={box}
+          height={box}
+          viewBox={`${-pad} ${-pad} ${box} ${box}`}
+          aria-hidden="true"
+        >
+          <g transform={`rotate(-90 ${center} ${center})`}>
+            {segments.map((seg) => {
+              const isActive = active === seg.index;
+              const isHere = pinned === seg.index;
+              const stroke =
+                isHere ? thickness + 8 : isActive ? thickness + 6 : thickness;
+              return (
+                <circle
+                  key={`${seg.color.hex}-${seg.index}`}
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill="none"
+                  stroke={seg.color.hex}
+                  strokeWidth={stroke}
+                  strokeDasharray={seg.dasharray}
+                  strokeDashoffset={seg.dashoffset}
+                  style={{
+                    transition: "stroke-width 0.15s ease",
+                    cursor: "pointer",
+                    opacity: active == null || isActive ? 1 : 0.45,
+                  }}
+                  onMouseEnter={() => setHover(seg.index)}
+                  onMouseLeave={() => setHover(null)}
+                  onClick={() => togglePin(seg.index)}
+                />
+              );
+            })}
+          </g>
+        </svg>
 
-      {/* Center label */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        {activeColor ? (
-          <>
-            <span
-              className="h-4 w-4 rounded-full border border-ink-700"
-              style={{ backgroundColor: activeColor.hex }}
-            />
-            <span className="mt-1 inline-flex items-center gap-1 font-mono text-sm font-semibold text-ink-100">
-              {activeColor.hex.toUpperCase()}
-              {isPinned && active === pinned && (
-                <Pin className="h-3 w-3 text-accent-400" aria-label="pinned" />
-              )}
-            </span>
-            <span className="font-mono text-xs text-ink-400">
-              {activeColor.percentage.toFixed(1)}%
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="text-2xl font-semibold text-ink-100">
-              {colors.length}
-            </span>
-            <span className="text-xs uppercase tracking-wide text-ink-500">
-              colours
-            </span>
-          </>
-        )}
+        {/* Center label */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {activeColor ? (
+            <>
+              <span
+                className="h-4 w-4 rounded-full border border-ink-700"
+                style={{ backgroundColor: activeColor.hex }}
+              />
+              <span className="mt-1 inline-flex items-center gap-1 font-mono text-sm font-semibold text-ink-100">
+                {activeColor.hex.toUpperCase()}
+                {isPinned && active === pinned && (
+                  <Pin className="h-3 w-3 text-accent-400" aria-label="pinned" />
+                )}
+              </span>
+              <span className="font-mono text-xs text-ink-400">
+                {activeColor.percentage.toFixed(1)}%
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-semibold text-ink-100">
+                {colors.length}
+              </span>
+              <span className="text-xs uppercase tracking-wide text-ink-500">
+                colours
+              </span>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Discoverability hint for sighted mouse/keyboard users. */}
+      <p className="text-3xs text-ink-500">
+        Hover or click a segment · arrow keys to step
+      </p>
+
+      {/* Politely announce the active segment to assistive tech. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {liveMessage}
+      </span>
     </div>
   );
 }

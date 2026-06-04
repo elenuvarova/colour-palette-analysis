@@ -1,4 +1,13 @@
-import { Clock, ImageOff, Layers, Loader2, Moon, Sparkles, Sun } from "lucide-react";
+import {
+  Clock,
+  ImageOff,
+  Layers,
+  Loader2,
+  Moon,
+  Sparkles,
+  Sun,
+  Wand2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { ColorBlindness } from "./components/ColorBlindness";
@@ -6,6 +15,7 @@ import { ContrastMatrix } from "./components/ContrastMatrix";
 import { Controls } from "./components/Controls";
 import { DonutChart } from "./components/DonutChart";
 import { Dropzone } from "./components/Dropzone";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ExportMenu } from "./components/ExportMenu";
 import { Harmony } from "./components/Harmony";
 import { PaletteGrid } from "./components/PaletteGrid";
@@ -78,6 +88,7 @@ export default function App() {
   const { theme, toggle: toggleTheme } = useTheme();
 
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const paletteSectionRef = useRef<HTMLDivElement | null>(null);
   const reextractTimer = useRef<number | null>(null);
 
@@ -200,12 +211,14 @@ export default function App() {
     [copy, pushToast],
   );
 
-  // Scroll to results once an extraction succeeds. We deliberately don't
-  // scroll on "loading" — the skeleton reveals in place and double-scrolling
-  // is jarring if the user has already moved around.
+  // Scroll to results once an extraction succeeds and move focus to the
+  // results heading so screen-reader and keyboard users land on the new
+  // content. We deliberately don't scroll on "loading" — the skeleton reveals
+  // in place and double-scrolling is jarring if the user has already moved.
   useEffect(() => {
     if (status === "success" && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      resultsHeadingRef.current?.focus();
     }
   }, [status]);
 
@@ -251,6 +264,20 @@ export default function App() {
     [extractSite, params],
   );
 
+  // First-run affordance: pull the bundled demo image and push it through the
+  // exact same file path the dropzone uses, so it exercises the real flow.
+  const onTrySample = useCallback(async () => {
+    try {
+      const res = await fetch("/sample.png");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const file = new File([blob], "sample.png", { type: "image/png" });
+      void extractFile(file, params);
+    } catch {
+      pushToast("Couldn't load the sample image — try your own instead.", "error");
+    }
+  }, [extractFile, params, pushToast]);
+
   // Keyboard shortcuts: Esc resets, Cmd/Ctrl+V pastes an image and extracts.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -283,6 +310,18 @@ export default function App() {
 
   const isLoading = status === "loading";
 
+  // Plain-language extraction state for the polite live region (screen readers).
+  const ariaStatus =
+    status === "loading"
+      ? "Analysing your image…"
+      : status === "success" && data
+        ? `Palette ready — ${data.colors.length} colour${
+            data.colors.length === 1 ? "" : "s"
+          }.`
+        : status === "error"
+          ? "Couldn't extract a palette."
+          : "";
+
   return (
     <div className="min-h-full">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
@@ -292,7 +331,7 @@ export default function App() {
             <div className="flex items-center gap-2 text-accent-400">
               <Sparkles className="h-5 w-5" />
               <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-500">
-                palette extractor
+                colour palettes
               </span>
             </div>
             <IconButton
@@ -308,10 +347,11 @@ export default function App() {
             </IconButton>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
-            colour-palette-analysis
+            Chroma
           </h1>
           <p className="max-w-xl text-ink-400">
-            Extract dominant colours from any image, with proportions.
+            Dominant colours and their exact share — from any image, URL, or
+            website.
           </p>
         </header>
 
@@ -331,8 +371,27 @@ export default function App() {
           />
         </section>
 
+        {/* Polite live region: announces extraction state to screen readers
+            without stealing focus. */}
+        <div role="status" aria-live="polite" className="sr-only">
+          {ariaStatus}
+        </div>
+
         {/* Results */}
-        <section ref={resultsRef} className="scroll-mt-6">
+        <main
+          ref={resultsRef}
+          aria-busy={isLoading}
+          aria-labelledby="results-heading"
+          className="scroll-mt-6"
+        >
+          <h2
+            id="results-heading"
+            ref={resultsHeadingRef}
+            tabIndex={-1}
+            className="sr-only focus:outline-none"
+          >
+            Results
+          </h2>
           {isLoading && (
             <div className="flex flex-col gap-5">
               <div className="card-compact flex items-center gap-4">
@@ -355,8 +414,9 @@ export default function App() {
           )}
 
           {!isLoading && status === "success" && data && (
-            <div className="flex animate-fade-in flex-col gap-8">
-              {source && (
+            <ErrorBoundary label="results">
+              <div className="flex animate-fade-in flex-col gap-8">
+                {source && (
                 <SourcePreview
                   file={source.kind === "file" ? source.file : undefined}
                   url={source.kind === "url" ? source.url : undefined}
@@ -446,16 +506,17 @@ export default function App() {
                 names={exportNames.ids}
                 displayNames={exportNames.display}
               />
-            </div>
+              </div>
+            </ErrorBoundary>
           )}
 
           {!isLoading && status !== "success" && (
-            <EmptyState errored={status === "error"} />
+            <EmptyState errored={status === "error"} onTrySample={onTrySample} />
           )}
-        </section>
+        </main>
 
         <footer className="pt-4 text-center text-xs text-ink-600">
-          Drop an image, paste a URL, or press ⌘/Ctrl+V. Press Esc to reset.
+          Drop an image, paste a URL, or press ⌘/Ctrl+V. Press Esc to start over.
         </footer>
       </div>
 
@@ -467,6 +528,7 @@ export default function App() {
           format={format}
           onFormatChange={setFormat}
           onCopy={(v) => handleCopy(v)}
+          onReset={reset}
           targetRef={paletteSectionRef}
         />
       )}
@@ -474,7 +536,13 @@ export default function App() {
   );
 }
 
-function EmptyState({ errored }: { errored: boolean }) {
+function EmptyState({
+  errored,
+  onTrySample,
+}: {
+  errored: boolean;
+  onTrySample: () => void;
+}) {
   return (
     <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
       <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 text-ink-500">
@@ -492,6 +560,20 @@ function EmptyState({ errored }: { errored: boolean }) {
           ? "Try a different image or URL, then adjust the parameters above."
           : "Add an image above to extract its dominant colours and see them ranked by proportion."}
       </p>
+      <Button
+        variant={errored ? "secondary" : "primary"}
+        size="sm"
+        onClick={onTrySample}
+        icon={<Wand2 className="h-4 w-4" />}
+        className="mt-1"
+      >
+        Try a sample
+      </Button>
+      {!errored && (
+        <p className="max-w-sm text-xs text-ink-600">
+          Other tools give you the colours. Chroma gives you how much of each.
+        </p>
+      )}
     </div>
   );
 }
