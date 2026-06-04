@@ -29,7 +29,7 @@ from .services.site_colors import extract_site
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
-app = FastAPI(title="Chroma API", version="0.1.0")
+app = FastAPI(title="Chroma API", version="0.2.0")
 app.state.limiter = limiter
 
 # Reject oversized requests by Content-Length before the body is buffered.
