@@ -112,6 +112,41 @@ def parse_colors(css: str) -> list[RGB]:
     return found
 
 
+def _fetch_following_redirects(client: httpx.Client, url: str) -> tuple[str, str]:
+    """Follow up to 5 redirects manually, checking every hop against the SSRF guard."""
+    for _ in range(6):
+        with client.stream("GET", url) as resp:
+            if resp.status_code not in (301, 302, 303, 307, 308):
+                # Final response — read and return
+                if resp.status_code in (401, 403, 429):
+                    raise AppError(
+                        f"The site blocked the request (HTTP {resp.status_code}). Many large "
+                        "sites block non-browser access — try another site.",
+                        status_code=400,
+                    )
+                if resp.status_code >= 400:
+                    raise AppError(
+                        f"The page returned an error (HTTP {resp.status_code}).", status_code=400
+                    )
+                size = 0
+                chunks: list[bytes] = []
+                for chunk in resp.iter_bytes():
+                    size += len(chunk)
+                    if size > _MAX_BYTES:
+                        break
+                    chunks.append(chunk)
+                return b"".join(chunks).decode("utf-8", errors="ignore"), str(resp.url)
+            location = resp.headers.get("location", "")
+        next_url = urljoin(url, location)
+        if not next_url.lower().startswith(("http://", "https://")):
+            raise AppError("Redirect to non-HTTP URL blocked.", status_code=400)
+        next_host = urlparse(next_url).hostname
+        if next_host and not settings.allow_private_hosts:
+            _assert_host_allowed(next_host)
+        url = next_url
+    raise AppError("Too many redirects.", status_code=400)
+
+
 def _fetch(client: httpx.Client, url: str) -> tuple[str, str]:
     """Fetch a resource as text, enforcing the host guard and a size cap."""
     with client.stream("GET", url) as resp:
@@ -158,11 +193,11 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
     try:
         with httpx.Client(
             timeout=_TIMEOUT,
-            follow_redirects=True,
-            max_redirects=5,
+            follow_redirects=False,
             headers=_HEADERS,
         ) as client:
-            html, base = _fetch(client, url)
+            html, base = _fetch_following_redirects(client, url)
+
             css = html
             hrefs = [
                 m.group(1)
