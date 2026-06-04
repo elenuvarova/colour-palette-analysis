@@ -57,8 +57,11 @@ jobs:
 
       - name: Smoke test - POST /api/extract with a generated fixture image
         run: |
-          # 4x4 solid-colour PNG, no external fixtures needed.
-          python3 -c "from PIL import Image; Image.new('RGB',(4,4),(123,111,254)).save('fixture.png')"
+          # Generate the fixture with the container's own Pillow (the runner
+          # host has no PIL), then copy it out and POST from the host curl.
+          docker exec chroma python3 -c \
+            "from PIL import Image; Image.new('RGB',(8,8),(123,111,254)).save('/tmp/fixture.png')"
+          docker cp chroma:/tmp/fixture.png fixture.png
           curl -fsS -F "file=@fixture.png;type=image/png" \
             http://localhost:8080/api/extract | grep -q '"colors"' \
             || { echo "/api/extract did not return a palette"; exit 1; }
