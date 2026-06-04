@@ -17,25 +17,24 @@
     --ink-700: 65 72 83;
     --ink-800: 39 44 51;
     --ink-850: 28 32 37;
-    --ink-900: 21 24 28;
-    --ink-950: 13 15 18;
+    --ink-900: 20 21 28;
+    --ink-950: 11 12 17;
 
-    /* Accent (brand teal) — theme-constant. Defined as CSS variables so JS/CSS
-       strings can reference rgb(var(--accent-500)) instead of literal #00acaa. */
-    --accent-50: 230 251 250;
-    --accent-100: 194 245 243;
-    --accent-200: 138 234 231;
-    --accent-300: 77 217 214;
-    --accent-400: 31 194 192;
-    --accent-500: 0 172 170;
-    --accent-600: 0 139 138;
-    --accent-700: 7 110 110;
-    --accent-800: 11 87 87;
-    --accent-900: 14 73 73;
+    /* Accent (violet) — theme-constant. */
+    --accent-50: 240 238 255;
+    --accent-100: 225 221 255;
+    --accent-200: 196 190 255;
+    --accent-300: 162 153 255;
+    --accent-400: 134 124 255;
+    --accent-500: 123 111 254;
+    --accent-600: 96 85 212;
+    --accent-700: 74 65 168;
+    --accent-800: 54 48 126;
+    --accent-900: 36 31 84;
 
     /* Top-3 dominant colours of the current palette, pushed by App.tsx on
        successful extraction. Used by the page tint below. Default = accent
-       so the page has a teal glow before any palette is loaded. */
+       so the page has a violet glow before any palette is loaded. */
     --palette-1: var(--accent-500);
     --palette-2: var(--accent-400);
     --palette-3: var(--accent-300);
@@ -119,7 +118,7 @@
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-ink-800 bg-ink-900/70 backdrop-blur;
+    @apply rounded-2xl border border-ink-700/60 bg-ink-900/70 backdrop-blur;
   }
 
   /* Compact card density for horizontal info rows (Meta tile, SourcePreview,
