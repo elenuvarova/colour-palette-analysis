@@ -4,8 +4,8 @@
 
 Upload an image (drag-drop, click, or paste a URL) and get back the dominant colours with their exact share of the pixels — as an interactive palette with swatches, a donut chart, copy-on-click in HEX / RGB / HSL / OKLCH, and one-click export to CSS variables, a Tailwind config, `.ase`, `.json`, or a `.png` palette.
 
-- **Live:** https://palette.ontwrpn.com
-- **API docs:** https://palette.ontwrpn.com/docs
+- **Live:** https://chroma.ontwrpn.com
+- **API docs:** https://chroma.ontwrpn.com/docs
 
 ## Why I built this
 
@@ -83,7 +83,7 @@ Interactive schema at `/docs`.
 
 ## Deploy
 
-Chroma ships as **one Docker container**, deployed via [Coolify](https://coolify.io/) on a self-hosted host at [palette.ontwrpn.com](https://palette.ontwrpn.com).
+Chroma ships as **one Docker container**, deployed via [Coolify](https://coolify.io/) on a self-hosted host at [chroma.ontwrpn.com](https://chroma.ontwrpn.com).
 
 The multi-stage [`Dockerfile`](./Dockerfile) builds the Vite frontend, then layers it onto a Python image that runs both processes:
 
@@ -93,7 +93,7 @@ The multi-stage [`Dockerfile`](./Dockerfile) builds the Vite frontend, then laye
 
 Because nginx proxies the API on the same origin, the frontend calls relative `/api/…` URLs (no `VITE_API_BASE_URL` needed in production).
 
-**Required env var:** `ALLOWED_ORIGINS` — comma-separated origins the backend accepts (e.g. `https://palette.ontwrpn.com`). Set it in Coolify under Configuration → Environment Variables.
+**Required env var:** `ALLOWED_ORIGINS` — comma-separated origins the backend accepts (e.g. `https://chroma.ontwrpn.com`). Set it in Coolify under Configuration → Environment Variables.
 
 To redeploy: push to `main` (Coolify auto-deploys), or trigger a manual redeploy from the Coolify dashboard. The image is built straight from the `Dockerfile`; there is no separate build command to keep in sync.
 
