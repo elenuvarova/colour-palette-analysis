@@ -229,8 +229,13 @@ def load_from_url(url: str, ignore_alpha: bool) -> Image.Image:
                 )
 
             declared = response.headers.get("content-length")
-            if declared and int(declared) > settings.max_file_size:
-                raise AppError("Remote image is too large.", status_code=413)
+            if declared:
+                try:
+                    declared_len = int(declared)
+                except ValueError:
+                    declared_len = None  # junk header → rely on the streaming cap below
+                if declared_len is not None and declared_len > settings.max_file_size:
+                    raise AppError("Remote image is too large.", status_code=413)
 
             chunks: list[bytes] = []
             size = 0

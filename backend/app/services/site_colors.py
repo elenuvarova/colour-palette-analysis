@@ -14,6 +14,7 @@ against their ``--name: <color>`` custom-property declarations. Fully transparen
 from __future__ import annotations
 
 import re
+import time
 from collections import Counter
 from urllib.parse import urljoin, urlparse
 
@@ -80,6 +81,11 @@ _HREF = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.I)
 _MAX_BYTES = 3 * 1024 * 1024
 _MAX_STYLESHEETS = 8
 _TIMEOUT = 6.0
+# Aggregate budget across the page + all stylesheet sub-fetches: a single
+# request can't be used to relay/amplify against third parties for minutes or
+# pull tens of MB (each sub-fetch is already capped by _TIMEOUT / _MAX_BYTES).
+_TOTAL_FETCH_BUDGET_S = 20.0
+_TOTAL_CSS_BYTES = 6 * 1024 * 1024
 # A realistic browser UA gets past simple user-agent blocks. Advanced bot
 # protection (JS challenges, TLS fingerprinting) can't be bypassed without a
 # real browser — those sites will still fail, which is expected.
@@ -313,6 +319,7 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
         )
 
     try:
+        deadline = time.monotonic() + _TOTAL_FETCH_BUDGET_S
         html, base = _fetch_following_redirects(url)
 
         css = html
@@ -324,6 +331,9 @@ def extract_site(url: str, limit: int) -> tuple[list[tuple[RGB, int]], int]:
             if m
         ]
         for href in hrefs[:_MAX_STYLESHEETS]:
+            # Stop early once the aggregate time/byte budget is spent.
+            if time.monotonic() > deadline or len(css) > _TOTAL_CSS_BYTES:
+                break
             sheet_url = urljoin(base, href)
             if not sheet_url.lower().startswith(("http://", "https://")):
                 continue

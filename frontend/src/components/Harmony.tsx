@@ -151,6 +151,7 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
     <div className="card flex flex-col gap-4 p-6">
       <SectionHeader
         title="Harmony"
+        level={2}
         subtitle="Pick 1–3 colours; we suggest extra colours that complete them (computed in OKLCh; ones you already have are hidden)."
       />
 
@@ -167,15 +168,21 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
               onClick={() => toggle(i)}
               title={c.hex}
               aria-pressed={selected.includes(i)}
-              aria-label={`Toggle ${c.hex} as a harmony base`}
-              style={{ backgroundColor: c.hex }}
-              className={clsx(
-                "h-8 w-8 rounded-md transition",
-                selected.includes(i)
-                  ? "ring-2 ring-accent-500 ring-offset-2 ring-offset-ink-900"
-                  : "opacity-70 hover:opacity-100",
-              )}
-            />
+              aria-label={`Toggle ${c.hex} (${nearestColorName(c.hex)}) as a harmony base`}
+              // 32px visual swatch with a 44px tap target (WCAG 2.5.8): p-1.5
+              // grows the hit area while -m-1.5 keeps the visual layout intact.
+              className="-m-1.5 p-1.5"
+            >
+              <span
+                style={{ backgroundColor: c.hex }}
+                className={clsx(
+                  "block h-8 w-8 rounded-sm transition",
+                  selected.includes(i)
+                    ? "ring-2 ring-accent-500 ring-offset-2 ring-offset-ink-900"
+                    : "hover:opacity-90",
+                )}
+              />
+            </button>
           ))}
         </div>
       </div>
@@ -188,15 +195,11 @@ export function Harmony({ colors, onCopy }: HarmonyProps) {
             onClick={() => onCopy(sug.hex, sug.hex)}
             title={`Copy ${sug.hex} — ${nearestColorName(sug.hex)}`}
             style={{ backgroundColor: sug.hex, color: readableOn(hexToRgb(sug.hex)) }}
-            className="flex min-w-0 flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-transform hover:-translate-y-0.5"
+            className="flex min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-md px-3 py-2.5 text-left transition-transform hover:-translate-y-0.5"
           >
-            <span className="truncate text-2xs font-medium opacity-80">
-              {sug.label}
-            </span>
+            <span className="truncate text-2xs font-medium">{sug.label}</span>
             <span className="font-mono text-xs font-semibold">{sug.hex}</span>
-            <span className="truncate text-2xs opacity-80">
-              {nearestColorName(sug.hex)}
-            </span>
+            <span className="truncate text-2xs">{nearestColorName(sug.hex)}</span>
           </button>
         ))}
       </div>

@@ -3,7 +3,7 @@ import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Variant = "secondary" | "ghost" | "overlay";
-type Size = "sm" | "md";
+type Size = "sm" | "md" | "lg";
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -24,6 +24,9 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   sm: "h-8 w-8",
   md: "h-9 w-9",
+  // lg meets the 44px minimum touch target (WCAG 2.5.8) — use for primary
+  // icon-only chrome like the theme toggle and modal close buttons.
+  lg: "h-11 w-11",
 };
 
 /** Square icon-only button. Use for icon-only chrome (theme toggle, modal close). */
@@ -36,7 +39,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       <button
         ref={ref}
         className={clsx(
-          "grid place-items-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+          "grid place-items-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50",
           sizes[size],
           variants[variant],
           className,

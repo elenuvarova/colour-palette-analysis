@@ -217,7 +217,13 @@ export default function App() {
   // in place and double-scrolling is jarring if the user has already moved.
   useEffect(() => {
     if (status === "success" && resultsRef.current) {
-      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      resultsRef.current.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
       resultsHeadingRef.current?.focus();
     }
   }, [status]);
@@ -324,39 +330,56 @@ export default function App() {
 
   return (
     <div className="min-h-full">
+      {/* Skip link — first focusable element; jumps past the input area to the
+          results region for keyboard/screen-reader users. */}
+      <a
+        href="#results-heading"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-accent-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Skip to results
+      </a>
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14">
-        {/* Header */}
-        <header className="flex flex-col gap-3">
+        {/* Header + hero */}
+        <header className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-accent-400">
-              <Sparkles className="h-5 w-5" />
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-500">
-                colour palettes
+            {/* Wordmark lockup */}
+            <div className="flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-md bg-accent-600 text-white">
+                <Sparkles className="h-[1.1rem] w-[1.1rem]" aria-hidden="true" />
+              </span>
+              <span className="text-lg font-semibold tracking-tight text-ink-50">
+                Chroma
               </span>
             </div>
             <IconButton
+              size="lg"
               onClick={toggleTheme}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
               title="Toggle light / dark"
             >
               {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
+                <Sun className="h-4 w-4" aria-hidden="true" />
               ) : (
-                <Moon className="h-4 w-4" />
+                <Moon className="h-4 w-4" aria-hidden="true" />
               )}
             </IconButton>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
-            Chroma
-          </h1>
-          <p className="max-w-xl text-ink-400">
-            Dominant colours and their exact share — from any image, URL, or
-            website.
-          </p>
+          <div className="flex flex-col gap-3">
+            <h1 className="text-balance text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
+              Dominant colours and their exact share
+            </h1>
+            <p className="max-w-xl text-balance text-base text-ink-300 sm:text-lg">
+              Other tools give you the colours. Chroma gives you how much of
+              each — from any image, URL, or website.
+            </p>
+          </div>
         </header>
 
         {/* Input area */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <section
+          aria-label="Add an image"
+          className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]"
+        >
           <Dropzone
             onFile={onFile}
             onUrl={onUrl}
@@ -395,7 +418,10 @@ export default function App() {
           {isLoading && (
             <div className="flex flex-col gap-5">
               <div className="card-compact flex items-center gap-4">
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-accent-400" />
+                <Loader2
+                  className="h-5 w-5 shrink-0 animate-spin text-accent-text"
+                  aria-hidden="true"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink-100">
                     Analysing your image…
@@ -457,7 +483,7 @@ export default function App() {
                     label: (
                       <span>
                         Shades{" "}
-                        <span className="ml-1 font-mono text-3xs opacity-60">
+                        <span className="ml-1 font-mono text-3xs">
                           {data.colors.length}
                         </span>
                       </span>
@@ -476,7 +502,7 @@ export default function App() {
                     label: (
                       <span>
                         Contrast{" "}
-                        <span className="ml-1 font-mono text-3xs opacity-60">
+                        <span className="ml-1 font-mono text-3xs">
                           {data.colors.length}×{data.colors.length}
                         </span>
                       </span>
@@ -515,7 +541,7 @@ export default function App() {
           )}
         </main>
 
-        <footer className="pt-4 text-center text-xs text-ink-600">
+        <footer className="pt-4 text-center text-xs text-ink-400">
           Drop an image, paste a URL, or press ⌘/Ctrl+V. Press Esc to start over.
         </footer>
       </div>
@@ -545,17 +571,17 @@ function EmptyState({
 }) {
   return (
     <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
-      <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 text-ink-500">
+      <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 text-ink-400">
         {errored ? (
-          <ImageOff className="h-6 w-6" />
+          <ImageOff className="h-6 w-6" aria-hidden="true" />
         ) : (
-          <Layers className="h-6 w-6" />
+          <Layers className="h-6 w-6" aria-hidden="true" />
         )}
       </span>
       <p className="text-sm font-medium text-ink-200">
         {errored ? "That didn't work" : "No palette yet"}
       </p>
-      <p className="max-w-sm text-sm text-ink-500">
+      <p className="max-w-sm text-sm text-ink-400">
         {errored
           ? "Try a different image or URL, then adjust the parameters above."
           : "Add an image above to extract its dominant colours and see them ranked by proportion."}
@@ -564,16 +590,11 @@ function EmptyState({
         variant={errored ? "secondary" : "primary"}
         size="sm"
         onClick={onTrySample}
-        icon={<Wand2 className="h-4 w-4" />}
+        icon={<Wand2 className="h-4 w-4" aria-hidden="true" />}
         className="mt-1"
       >
         Try a sample
       </Button>
-      {!errored && (
-        <p className="max-w-sm text-xs text-ink-600">
-          Other tools give you the colours. Chroma gives you how much of each.
-        </p>
-      )}
     </div>
   );
 }
@@ -583,22 +604,22 @@ function Meta({ meta }: { meta: import("./types").ExtractMeta }) {
   const stats: { icon: JSX.Element; label: string; value: string }[] = [
     meta.mode === "site"
       ? {
-          icon: <Layers className="h-4 w-4" />,
+          icon: <Layers className="h-4 w-4" aria-hidden="true" />,
           label: "Source",
           value: "Website CSS",
         }
       : {
-          icon: <Layers className="h-4 w-4" />,
+          icon: <Layers className="h-4 w-4" aria-hidden="true" />,
           label: "Image",
           value: `${w} × ${h}`,
         },
     {
-      icon: <Clock className="h-4 w-4" />,
+      icon: <Clock className="h-4 w-4" aria-hidden="true" />,
       label: "Processed in",
       value: `${meta.processing_ms} ms`,
     },
     {
-      icon: <Sparkles className="h-4 w-4" />,
+      icon: <Sparkles className="h-4 w-4" aria-hidden="true" />,
       label: "Mode",
       value: meta.mode,
     },
@@ -610,7 +631,7 @@ function Meta({ meta }: { meta: import("./types").ExtractMeta }) {
           key={s.label}
           className="card-compact flex items-center gap-3 text-sm"
         >
-          <span className="text-accent-400">{s.icon}</span>
+          <span className="text-accent-text">{s.icon}</span>
           <div className="flex flex-col">
             <span className="text-xs uppercase tracking-wide text-ink-500">
               {s.label}

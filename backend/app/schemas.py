@@ -35,18 +35,23 @@ class ExtractResponse(BaseModel):
     meta: MetaOut
 
 
-class ExtractUrlRequest(BaseModel):
+class _UrlRequestBase(BaseModel):
+    """Shared URL field with a bounded length (defense-in-depth in front of the
+    runtime scheme/SSRF guard, which returns the friendly error messages)."""
+
+    url: str = Field(max_length=2048)
+
+
+class ExtractUrlRequest(_UrlRequestBase):
     """JSON request body for the ``/api/extract-url`` endpoint."""
 
-    url: str
-    limit: int = 8
-    tolerance: int = 32
+    limit: int = 6
+    tolerance: int = 16
     mode: Literal["fast", "precision"] = "fast"
     ignore_alpha: bool = Field(default=True)
 
 
-class ExtractSiteRequest(BaseModel):
+class ExtractSiteRequest(_UrlRequestBase):
     """JSON request body for the ``/api/extract-site`` endpoint."""
 
-    url: str
-    limit: int = 8
+    limit: int = 6

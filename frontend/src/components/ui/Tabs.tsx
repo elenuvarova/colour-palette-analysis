@@ -57,7 +57,7 @@ export function Tabs({ tabs, defaultActive, ariaLabel }: TabsProps) {
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className="flex flex-wrap gap-1 self-start rounded-xl border border-ink-700 bg-ink-850 p-1"
+        className="flex flex-wrap gap-1 self-start rounded-sm border border-ink-700 bg-ink-850 p-1"
       >
         {tabs.map((t) => {
           const selected = t.id === active;
@@ -76,7 +76,7 @@ export function Tabs({ tabs, defaultActive, ariaLabel }: TabsProps) {
               onClick={() => setActive(t.id)}
               onKeyDown={onKeyDown}
               className={clsx(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                "flex min-h-[44px] items-center rounded-sm px-3 text-xs font-medium transition-colors",
                 selected
                   ? "bg-accent-600 text-white"
                   : "text-ink-400 hover:text-ink-100",

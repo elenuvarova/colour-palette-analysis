@@ -27,11 +27,11 @@ export function PaletteSkeleton() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-4 w-32" />
-        <div className="flex gap-1 overflow-hidden rounded-xl">
+        <div className="flex gap-1 overflow-hidden rounded-lg">
           {bands.map((basis, i) => (
             <Skeleton
               key={i}
-              className="h-28 rounded-none first:rounded-l-xl last:rounded-r-xl"
+              className="h-28 rounded-none first:rounded-l-lg last:rounded-r-lg"
               style={{ flexBasis: `${basis}%` }}
             />
           ))}

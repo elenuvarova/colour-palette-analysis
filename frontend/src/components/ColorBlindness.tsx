@@ -24,11 +24,23 @@ export function ColorBlindness({ colors }: ColorBlindnessProps) {
         subtitle="How the palette looks to different colour-vision types — watch for colours that merge."
       />
 
-      <div className="flex flex-col gap-2.5">
+      <ul className="flex list-none flex-col gap-2.5">
         {VIEWS.map((view) => (
-          <div key={view.key} className="flex flex-col gap-1">
-            <span className="text-xs text-ink-500">{view.label}</span>
-            <div className="flex h-8 overflow-hidden rounded-lg">
+          <li key={view.key} className="flex flex-col gap-1">
+            <span className="text-xs text-ink-400">{view.label}</span>
+            <div
+              role="img"
+              aria-label={`${view.label}: ${colors
+                .map((c) =>
+                  view.key === "normal"
+                    ? c.hex.toUpperCase()
+                    : `${c.hex.toUpperCase()} appears as ${rgbToHex(
+                        simulateCvd(c.rgb, view.key),
+                      ).toUpperCase()}`,
+                )
+                .join(", ")}`}
+              className="flex h-8 overflow-hidden rounded-md"
+            >
               {colors.map((c, i) => {
                 const hex =
                   view.key === "normal"
@@ -37,7 +49,6 @@ export function ColorBlindness({ colors }: ColorBlindnessProps) {
                 return (
                   <div
                     key={`${view.key}-${i}`}
-                    title={`${c.hex} → ${hex}`}
                     style={{
                       backgroundColor: hex,
                       flexBasis: `${Math.max((c.percentage / total) * 100, 2)}%`,
@@ -47,9 +58,9 @@ export function ColorBlindness({ colors }: ColorBlindnessProps) {
                 );
               })}
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { ImageOff, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { IconButton } from "./ui/IconButton";
 
@@ -20,17 +20,24 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
   const [broken, setBroken] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useFocusTrap(lightboxRef, lightbox && !broken);
 
+  // Create a fresh object URL whenever the File identity changes, and revoke
+  // it on cleanup. We intentionally do NOT revoke synchronously while the same
+  // File is still mounted: under React 18 StrictMode the effect mounts twice,
+  // and revoking the URL the live <img> is pointing at fires its onError and
+  // wrongly flips `broken` on (the sample-image bug). Keying the <img> by src
+  // means a new URL remounts the element and clears any stale error state.
   useEffect(() => {
-    setBroken(false);
-    if (file) {
-      const created = URL.createObjectURL(file);
-      setObjectUrl(created);
-      return () => URL.revokeObjectURL(created);
+    if (!file) {
+      setObjectUrl(null);
+      return;
     }
-    setObjectUrl(null);
+    const created = URL.createObjectURL(file);
+    setObjectUrl(created);
+    return () => URL.revokeObjectURL(created);
   }, [file]);
 
   // Close lightbox on Escape (stopPropagation so it doesn't reset the app).
@@ -54,18 +61,19 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
     <>
       <div className="card-compact flex items-center gap-4">
         {broken ? (
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-ink-500">
-            <ImageOff className="h-5 w-5" />
+          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-md border border-ink-700 bg-ink-850 text-ink-500">
+            <ImageOff className="h-5 w-5" aria-hidden="true" />
           </span>
         ) : (
           <button
             type="button"
             onClick={() => setLightbox(true)}
-            className="shrink-0 overflow-hidden rounded-lg border border-ink-700 transition-transform hover:scale-[1.03]"
+            className="shrink-0 overflow-hidden rounded-md border border-ink-700 transition-transform hover:scale-[1.03]"
             aria-label="Enlarge analysed image"
             title="Click to enlarge"
           >
             <img
+              key={src}
               src={src}
               alt="Analysed source"
               onError={() => setBroken(true)}
@@ -89,23 +97,26 @@ export function SourcePreview({ file, url }: SourcePreviewProps) {
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Analysed image, full size"
+          aria-labelledby={titleId}
           onClick={() => setLightbox(false)}
         >
+          <h2 id={titleId} className="sr-only">
+            Analysed image, full size
+          </h2>
           <img
             src={src}
             alt="Analysed source, full size"
-            className="max-h-[90vh] max-w-[90vw] rounded-xl border border-ink-700 object-contain"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg border border-ink-700 object-contain"
             onClick={(e) => e.stopPropagation()}
           />
           <div className="absolute right-4 top-4">
             <IconButton
-              size="sm"
+              size="lg"
               variant="overlay"
               onClick={() => setLightbox(false)}
               aria-label="Close"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </IconButton>
           </div>
         </div>

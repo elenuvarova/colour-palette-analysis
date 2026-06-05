@@ -15,11 +15,21 @@ interface ContrastMatrixProps {
 
 type Filter = "all" | "aa" | "aaa";
 
-const GRADE_DOT: Record<ContrastGrade, string> = {
-  AAA: "●●●",
-  AA: "●●",
-  "AA Large": "●",
-  Fail: "—",
+// Short visible label per grade — a word, not dots alone, so pass/fail is not
+// conveyed by shape/opacity only (WCAG 1.4.1 Use of Colour).
+const GRADE_LABEL: Record<ContrastGrade, string> = {
+  AAA: "AAA",
+  AA: "AA",
+  "AA Large": "AA L",
+  Fail: "Fail",
+};
+
+// Full spoken grade for the aria-label.
+const GRADE_WORDS: Record<ContrastGrade, string> = {
+  AAA: "passes AAA",
+  AA: "passes AA",
+  "AA Large": "passes AA for large text only",
+  Fail: "fails WCAG contrast",
 };
 
 const FILTER_OPTIONS: { value: Filter; label: string }[] = [
@@ -49,7 +59,7 @@ export function ContrastMatrix({ colors, onCopy }: ContrastMatrixProps) {
     <div className="card flex flex-col gap-3 p-6">
       <SectionHeader
         title="Contrast"
-        subtitle="Text (row) on background (column). Click a cell to copy the pair as CSS. ● = AA Large, ●● = AA, ●●● = AAA."
+        subtitle="Text (row) on background (column). Each cell shows the ratio and WCAG grade (AA L = large text only). Click a cell to copy the pair as CSS."
         action={
           <Segmented
             options={FILTER_OPTIONS}
@@ -138,14 +148,16 @@ function Row({
               color: row.hex,
               opacity: ok ? 1 : 0.28,
             }}
-            title={`${row.hex} on ${col.hex} — ${ratio.toFixed(2)}:1 (${grade}). Click to copy CSS.`}
+            aria-label={`Text ${row.hex.toUpperCase()} on background ${col.hex.toUpperCase()}: contrast ratio ${ratio.toFixed(
+              2,
+            )} to 1, ${GRADE_WORDS[grade]}. Click to copy CSS.`}
             onClick={() => onCopy(css, `${row.hex.toUpperCase()} on ${col.hex.toUpperCase()}`)}
           >
             <span className="font-mono text-sm font-semibold tabular-nums">
               {ratio.toFixed(1)}
             </span>
-            <span className="font-mono text-3xs leading-none opacity-90">
-              {GRADE_DOT[grade]}
+            <span className="text-3xs font-semibold uppercase leading-none tracking-wide">
+              {GRADE_LABEL[grade]}
             </span>
           </button>
         );

@@ -18,7 +18,8 @@ trap shutdown TERM INT
 # can't stay up, so Docker/Coolify can restart the whole container.
 (
     while true; do
-        uvicorn app.main:app --host 127.0.0.1 --port 8000 || true
+        gosu appuser uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+            --proxy-headers --forwarded-allow-ips 127.0.0.1 || true
         echo "uvicorn exited (code $?), restarting in 1s..." >&2
         sleep 1
     done

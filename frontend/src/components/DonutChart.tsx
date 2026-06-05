@@ -16,7 +16,18 @@ interface Segment {
   index: number;
   dasharray: string;
   dashoffset: number;
+  /** Arc length in user units — used to decide rounded vs. butt caps. */
+  length: number;
 }
+
+// Tuning constants (were inline magic numbers).
+const GAP_PX = 1.5; // visual gap between adjacent segments
+const GAP_MIN_LEN = 6; // only insert a gap on arcs longer than this
+const STROKE_GROW_HOVER = 6; // px the active segment thickens by
+const STROKE_GROW_PINNED = 8; // px the pinned segment thickens by
+const VIEWBOX_PAD = 8; // transparent margin so a grown stroke isn't clipped
+const INACTIVE_OPACITY = 0.6; // dimming applied to non-active segments
+const ROUND_CAP_MIN_LEN = 14; // arcs longer than this get rounded stroke caps
 
 /**
  * Pure-SVG donut. Mouse hovers a segment; keyboard cycles with arrow keys
@@ -49,7 +60,7 @@ export function DonutChart({
   // pad the viewBox AND the rendered box by the same amount so the donut keeps
   // its full diameter (1 unit = 1px) while gaining a transparent margin all
   // around. `box` is the on-screen square; geometry stays centred at `center`.
-  const pad = 8;
+  const pad = VIEWBOX_PAD;
   const box = size + pad * 2;
 
   const total = colors.reduce((sum, c) => sum + c.percentage, 0) || 1;
@@ -58,11 +69,12 @@ export function DonutChart({
   const segments: Segment[] = colors.map((color, index) => {
     const fraction = color.percentage / total;
     const length = fraction * circumference;
-    const gap = length > 6 ? 1.5 : 0;
-    const dasharray = `${Math.max(length - gap, 0)} ${circumference - Math.max(length - gap, 0)}`;
+    const gap = length > GAP_MIN_LEN ? GAP_PX : 0;
+    const drawn = Math.max(length - gap, 0);
+    const dasharray = `${drawn} ${circumference - drawn}`;
     const dashoffset = -cumulative * circumference;
     cumulative += fraction;
-    return { color, index, dasharray, dashoffset };
+    return { color, index, dasharray, dashoffset, length };
   });
 
   const active = pinned ?? hover ?? kbd;
@@ -108,8 +120,13 @@ export function DonutChart({
   return (
     <div className="inline-flex flex-col items-center gap-2">
       <div
-        className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
-        style={{ width: box, height: box }}
+        className="relative inline-flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2"
+        style={{
+          width: box,
+          height: box,
+          // Theme-aware focus-ring offset (flips with the page bg).
+          ["--tw-ring-offset-color" as string]: "rgb(var(--focus-ring-offset))",
+        }}
         tabIndex={0}
         role="group"
         aria-label={
@@ -126,11 +143,23 @@ export function DonutChart({
           aria-hidden="true"
         >
           <g transform={`rotate(-90 ${center} ${center})`}>
+            {/* Track ring behind the segments gives the donut a defined edge. */}
+            <circle
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke="rgb(var(--ink-800))"
+              strokeWidth={thickness}
+            />
             {segments.map((seg) => {
               const isActive = active === seg.index;
               const isHere = pinned === seg.index;
-              const stroke =
-                isHere ? thickness + 8 : isActive ? thickness + 6 : thickness;
+              const stroke = isHere
+                ? thickness + STROKE_GROW_PINNED
+                : isActive
+                  ? thickness + STROKE_GROW_HOVER
+                  : thickness;
               return (
                 <circle
                   key={`${seg.color.hex}-${seg.index}`}
@@ -142,10 +171,13 @@ export function DonutChart({
                   strokeWidth={stroke}
                   strokeDasharray={seg.dasharray}
                   strokeDashoffset={seg.dashoffset}
+                  strokeLinecap={
+                    seg.length > ROUND_CAP_MIN_LEN ? "round" : "butt"
+                  }
                   style={{
                     transition: "stroke-width 0.15s ease",
                     cursor: "pointer",
-                    opacity: active == null || isActive ? 1 : 0.45,
+                    opacity: active == null || isActive ? 1 : INACTIVE_OPACITY,
                   }}
                   onMouseEnter={() => setHover(seg.index)}
                   onMouseLeave={() => setHover(null)}
@@ -167,7 +199,7 @@ export function DonutChart({
               <span className="mt-1 inline-flex items-center gap-1 font-mono text-sm font-semibold text-ink-100">
                 {activeColor.hex.toUpperCase()}
                 {isPinned && active === pinned && (
-                  <Pin className="h-3 w-3 text-accent-400" aria-label="pinned" />
+                  <Pin className="h-3 w-3 text-accent-text" aria-hidden="true" />
                 )}
               </span>
               <span className="font-mono text-xs text-ink-400">

@@ -32,6 +32,9 @@ export default {
           700: "rgb(var(--accent-700) / <alpha-value>)",
           800: "rgb(var(--accent-800) / <alpha-value>)",
           900: "rgb(var(--accent-900) / <alpha-value>)",
+          // Theme-aware accent for text/icons on the page bg (flips per theme
+          // so accent-coloured text clears WCAG AA 4.5:1 in light mode).
+          text: "rgb(var(--accent-text) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -55,9 +58,22 @@ export default {
           "monospace",
         ],
       },
+      // Three-tier radius system. Use sm for chips and inner elements, md for
+      // buttons / inputs / swatches, lg for cards and modals. The xl/2xl steps
+      // are kept as aliases of lg so any stragglers stay on-system.
       borderRadius: {
-        xl: "0.875rem",
-        "2xl": "1.25rem",
+        sm: "0.375rem", // 6px — chips, inner pills, small toggles
+        md: "0.625rem", // 10px — buttons, inputs, swatches
+        lg: "1rem", // 16px — cards, modals
+        xl: "1rem",
+        "2xl": "1rem",
+      },
+      boxShadow: {
+        // Layered elevation. card = resting surfaces, card-lg = raised cards,
+        // pop = floating chrome (sticky bar, toasts, modals).
+        card: "0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.10)",
+        "card-lg": "0 2px 6px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.14)",
+        pop: "0 4px 12px rgb(0 0 0 / 0.18), 0 12px 32px rgb(0 0 0 / 0.28)",
       },
       fontSize: {
         // Named steps for "tiny" sizes used in chip labels / numeric badges,

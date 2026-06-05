@@ -11,7 +11,7 @@ RUN npm run build
 FROM python:3.12-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx \
+    && apt-get install -y --no-install-recommends nginx gosu \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -25,6 +25,11 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN rm -f /etc/nginx/sites-enabled/default
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
+
+# Non-root account for the uvicorn worker. nginx's master still starts as root
+# (to bind :80); start.sh drops uvicorn to this user via gosu. App code is
+# world-readable and the app writes nothing to disk, so no chown is needed.
+RUN useradd --system --uid 10001 --no-create-home appuser
 
 EXPOSE 80
 

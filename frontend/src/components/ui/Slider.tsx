@@ -9,6 +9,7 @@ interface SliderProps {
   onChange: (value: number) => void;
   hint?: string;
   formatValue?: (value: number) => string;
+  disabled?: boolean;
 }
 
 export function Slider({
@@ -20,9 +21,12 @@ export function Slider({
   onChange,
   hint,
   formatValue,
+  disabled,
 }: SliderProps) {
   const id = useId();
+  const hintId = useId();
   const pct = ((value - min) / (max - min)) * 100;
+  const formatted = formatValue ? formatValue(value) : String(value);
   // Both filled and empty sides follow theme variables — accent stays constant
   // across themes, ink-800 flips with light/dark.
   const trackStyle = {
@@ -35,22 +39,29 @@ export function Slider({
         <label htmlFor={id} className="text-sm font-medium text-ink-200">
           {label}
         </label>
-        <span className="font-mono text-sm tabular-nums text-accent-300">
-          {formatValue ? formatValue(value) : value}
+        <span className="font-mono text-sm tabular-nums text-accent-text">
+          {formatted}
         </span>
       </div>
       <input
         id={id}
         type="range"
-        className="cpa-range"
+        className="cpa-range disabled:cursor-not-allowed disabled:opacity-50"
         style={trackStyle}
         min={min}
         max={max}
         step={step}
         value={value}
+        disabled={disabled}
+        aria-describedby={hint ? hintId : undefined}
+        aria-valuetext={formatted}
         onChange={(e) => onChange(Number(e.target.value))}
       />
-      {hint && <p className="text-xs text-ink-500">{hint}</p>}
+      {hint && (
+        <p id={hintId} className="text-xs text-ink-500">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

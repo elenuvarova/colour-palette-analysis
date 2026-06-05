@@ -1,7 +1,6 @@
 import { clsx } from "clsx";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { nearestColorName } from "../lib/colorNames";
 import { contrastText, formatColor } from "../lib/formats";
 import type { ColorFormat, PaletteColor } from "../types";
@@ -73,16 +72,16 @@ export function ColorSwatch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Proportional strip: one bare colour segment per colour, width driven by its
-  // share. We render no in-segment text — the slivers get as narrow as 40px, so
-  // any label would truncate to noise like "10.…". The hex + percent live in
-  // the hover tooltip and the detailed cards below instead.
+  // Proportional strip: one colour segment per colour, width driven by its
+  // share. A floating label (hex + share) appears on hover AND focus — the
+  // latter so touch/keyboard users get it too (the old native `title` was
+  // invisible on touch). The label can overflow narrow slivers, so it sits in
+  // an overflow-visible segment with its own background chip.
   if (proportional) {
     return (
       <button
         type="button"
         onClick={() => onCopy(value)}
-        title={`${value} — ${pct} · click to copy`}
         aria-label={a11yLabel}
         style={{
           backgroundColor: color.hex,
@@ -91,34 +90,25 @@ export function ColorSwatch({
           outline: active ? `2px solid ${fg}` : undefined,
           outlineOffset: active ? "-3px" : undefined,
         }}
-        className="group relative h-16 min-w-[40px] flex-1 overflow-hidden first:rounded-l-xl last:rounded-r-xl sm:min-w-[56px]"
-      />
+        className="group relative h-16 min-w-[40px] flex-1 first:rounded-l-lg last:rounded-r-lg focus:z-10 focus-visible:z-10 sm:min-w-[56px]"
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md border border-ink-700 bg-ink-900 px-2 py-1 font-mono text-2xs text-ink-100 opacity-0 shadow-pop transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          {value} · {pct}
+        </span>
+      </button>
     );
   }
 
-  // Detailed card: click anywhere to copy the value; the name is its own
-  // inline-editable target. Root is a div+role=button so we can nest an
-  // <input> while editing without invalid <button> nesting.
-  const cardCopy = () => {
-    if (editing) return;
-    onCopy(value);
-  };
-  const cardKey = (e: ReactKeyboardEvent) => {
-    if (editing) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onCopy(value);
-    }
-  };
-
+  // Detailed card: a non-interactive coloured container with two real,
+  // sibling controls — a Copy button (the whole top row) and a rename button.
+  // Previously the card was a div[role=button] with a nested <button>, which is
+  // invalid interactive nesting; this keeps each control independently
+  // focusable and labelled.
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={cardCopy}
-      onKeyDown={cardKey}
-      title={`Copy ${value}`}
-      aria-label={a11yLabel}
       style={{
         backgroundColor: color.hex,
         color: fg,
@@ -126,15 +116,21 @@ export function ColorSwatch({
         outlineOffset: active ? "-3px" : undefined,
       }}
       className={clsx(
-        "group relative flex cursor-pointer flex-col justify-between gap-2 overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-2",
+        "group relative flex flex-col justify-between gap-2 overflow-hidden rounded-md p-4 text-left transition-transform hover:-translate-y-0.5",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <button
+        type="button"
+        onClick={() => onCopy(value)}
+        aria-label={a11yLabel}
+        style={{ color: fg }}
+        className="flex items-start justify-between gap-2 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-current"
+      >
         <span className="min-w-0 break-words font-mono text-xs font-semibold tabular-nums sm:text-sm">
           {value}
         </span>
         <span
-          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-80"
+          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
           aria-hidden="true"
         >
           {justCopied ? (
@@ -143,16 +139,14 @@ export function ColorSwatch({
             <Copy className="h-3.5 w-3.5" />
           )}
         </span>
-      </div>
+      </button>
       <div className="flex items-baseline justify-between gap-2">
         {editing ? (
           <input
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              e.stopPropagation();
               if (e.key === "Enter") {
                 e.preventDefault();
                 commitName();
@@ -165,24 +159,19 @@ export function ColorSwatch({
             placeholder={autoName}
             aria-label="Rename this colour"
             style={{ color: fg }}
-            className="min-w-0 flex-1 truncate border-b border-current/40 bg-transparent text-2xs outline-none placeholder:opacity-50"
+            className="min-w-0 flex-1 truncate border-b border-current/40 bg-transparent text-2xs outline-none placeholder:opacity-60"
           />
         ) : (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-            title={customName ? `Rename (${autoName})` : "Rename"}
-            className="min-w-0 truncate text-2xs opacity-70 hover:opacity-100"
+            onClick={() => setEditing(true)}
+            aria-label={customName ? `Rename ${displayName}` : `Rename, currently ${autoName}`}
+            className="min-w-0 truncate rounded-sm text-2xs outline-none hover:underline focus-visible:ring-2 focus-visible:ring-current"
           >
             {displayName}
           </button>
         )}
-        <span className="shrink-0 font-mono text-2xs tabular-nums opacity-80">
-          {pct}
-        </span>
+        <span className="shrink-0 font-mono text-2xs tabular-nums">{pct}</span>
       </div>
     </div>
   );

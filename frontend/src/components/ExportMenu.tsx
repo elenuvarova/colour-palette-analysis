@@ -81,7 +81,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Code2 className="h-4 w-4" />}
+            icon={<Code2 className="h-4 w-4" aria-hidden="true" />}
             onClick={() => onCopy(toCssVariables(colors, names), "CSS variables")}
           >
             CSS variables
@@ -89,7 +89,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Braces className="h-4 w-4" />}
+            icon={<Braces className="h-4 w-4" aria-hidden="true" />}
             onClick={() => onCopy(toTailwindConfig(colors, names), "Tailwind config")}
           >
             Tailwind config
@@ -97,7 +97,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Braces className="h-4 w-4" />}
+            icon={<Braces className="h-4 w-4" aria-hidden="true" />}
             onClick={() => onCopy(toTailwindV4Theme(colors, names), "Tailwind v4 @theme")}
           >
             Tailwind v4 @theme
@@ -105,7 +105,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Code2 className="h-4 w-4" />}
+            icon={<Code2 className="h-4 w-4" aria-hidden="true" />}
             onClick={() => onCopy(toScss(colors, names), "SCSS variables")}
           >
             SCSS variables
@@ -113,7 +113,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Hash className="h-4 w-4" />}
+            icon={<Hash className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               onCopy(colors.map((c) => c.hex.toUpperCase()).join(", "), "Hex list")
             }
@@ -123,7 +123,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<ClipboardCopy className="h-4 w-4" />}
+            icon={<ClipboardCopy className="h-4 w-4" aria-hidden="true" />}
             onClick={handleCopyImage}
           >
             Palette image
@@ -139,7 +139,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<FileJson className="h-4 w-4" />}
+            icon={<FileJson className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               downloadText(
                 toJsonString(colors, displayNames),
@@ -153,7 +153,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<FileJson className="h-4 w-4" />}
+            icon={<FileJson className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               downloadText(toDesignTokens(colors, names), "tokens.json", "application/json")
             }
@@ -163,7 +163,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Palette className="h-4 w-4" />}
+            icon={<Palette className="h-4 w-4" aria-hidden="true" />}
             onClick={handleAse}
           >
             .ase (Adobe)
@@ -171,7 +171,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Palette className="h-4 w-4" />}
+            icon={<Palette className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               downloadText(toGimpPalette(colors, displayNames), "palette.gpl", "text/plain")
             }
@@ -181,7 +181,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<Download className="h-4 w-4" />}
+            icon={<Download className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               downloadText(toSvgSwatches(colors), "palette.svg", "image/svg+xml")
             }
@@ -191,7 +191,7 @@ export function ExportMenu({
           <Button
             variant="secondary"
             size="sm"
-            icon={<ImageDown className="h-4 w-4" />}
+            icon={<ImageDown className="h-4 w-4" aria-hidden="true" />}
             onClick={handlePng}
           >
             palette.png

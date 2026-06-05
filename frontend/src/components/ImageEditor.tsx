@@ -1,5 +1,5 @@
 import { Check, RotateCcw, RotateCw, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -38,6 +38,7 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
   const [pixels, setPixels] = useState<PixelArea | null>(null);
   const [busy, setBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useFocusTrap(dialogRef, true);
 
@@ -83,24 +84,25 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
       className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Edit image"
+      aria-labelledby={titleId}
       onClick={onClose}
     >
       <div
         ref={dialogRef}
-        className="card flex w-full max-w-3xl flex-col gap-4 p-4 sm:p-6"
+        className="card flex w-full max-w-3xl flex-col gap-4 p-4 shadow-pop sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <SectionHeader
           title="Crop & rotate"
+          titleId={titleId}
           action={
-            <IconButton size="sm" variant="ghost" onClick={onClose} aria-label="Close editor">
-              <X className="h-4 w-4" />
+            <IconButton size="lg" variant="ghost" onClick={onClose} aria-label="Close editor">
+              <X className="h-4 w-4" aria-hidden="true" />
             </IconButton>
           }
         />
 
-        <div className="relative h-72 w-full overflow-hidden rounded-xl bg-black sm:h-96">
+        <div className="relative h-72 w-full overflow-hidden rounded-md bg-black sm:h-96">
           <Cropper
             image={src}
             crop={crop}
@@ -143,14 +145,14 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
             <Button
               variant="secondary"
               size="sm"
-              icon={<RotateCcw className="h-4 w-4" />}
+              icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
               onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
               aria-label="Rotate left 90 degrees"
             />
             <Button
               variant="secondary"
               size="sm"
-              icon={<RotateCw className="h-4 w-4" />}
+              icon={<RotateCw className="h-4 w-4" aria-hidden="true" />}
               onClick={() => setRotation((r) => (r + 90) % 360)}
               aria-label="Rotate right 90 degrees"
             />
@@ -177,7 +179,7 @@ export function ImageEditor({ src, onApply, onClose, onError }: ImageEditorProps
           <Button
             variant="primary"
             size="sm"
-            icon={<Check className="h-4 w-4" />}
+            icon={<Check className="h-4 w-4" aria-hidden="true" />}
             onClick={handleApply}
             disabled={busy || !pixels}
           >

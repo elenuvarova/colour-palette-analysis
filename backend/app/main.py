@@ -57,7 +57,9 @@ async def _limit_body_size(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
-    allow_credentials=True,
+    # No cookies/auth are used (stateless transform), so credentialed CORS is
+    # unnecessary and a latent foot-gun if auth is ever added. Keep it off.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -136,8 +138,8 @@ async def health() -> dict[str, str]:
 async def extract(
     request: Request,
     file: UploadFile = File(...),
-    limit: int = Form(8),
-    tolerance: int = Form(32),
+    limit: int = Form(6),
+    tolerance: int = Form(16),
     mode: str = Form("fast"),
     ignore_alpha: bool = Form(True),
 ) -> ExtractResponse:
@@ -186,7 +188,7 @@ async def extract_site_route(request: Request, body: ExtractSiteRequest) -> Extr
             rgb=[rgb[0], rgb[1], rgb[2]],
             hsl=list(rgb_to_hsl(rgb)),
             oklch=list(rgb_to_oklch(rgb)),
-            percentage=round(count / total * 100, 2),
+            percentage=round(count / total * 100, 2) if total else 0.0,
             pixel_count=count,
         )
         for rgb, count in items

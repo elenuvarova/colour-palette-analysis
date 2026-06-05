@@ -44,6 +44,7 @@ export function PaletteGrid({
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="Palette"
+        level={2}
         action={
           <Segmented
             options={formatOptions}
@@ -54,21 +55,26 @@ export function PaletteGrid({
         }
       />
 
-      {/* Proportional strip — key includes all hexes so swapping the palette
-          remounts the swatches and re-triggers the reveal animation. */}
-      <div className="flex w-full overflow-hidden rounded-xl" key={colors.map((c) => c.hex).join("|")}>
-        {colors.map((color, i) => (
-          <ColorSwatch
-            key={`${color.hex}-${i}`}
-            color={color}
-            format={format}
-            proportional
-            index={i}
-            justCopied={copiedIndex === i}
-            active={activeIndex === i}
-            onCopy={() => handleCopy(i, color)}
-          />
-        ))}
+      {/* Proportional strip — this bar is the product's core idea: each
+          colour's width is its share of pixels. key includes all hexes so
+          swapping the palette remounts the swatches and re-triggers the reveal
+          animation. overflow-visible lets a segment's floating label escape. */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex w-full rounded-lg" key={colors.map((c) => c.hex).join("|")}>
+          {colors.map((color, i) => (
+            <ColorSwatch
+              key={`${color.hex}-${i}`}
+              color={color}
+              format={format}
+              proportional
+              index={i}
+              justCopied={copiedIndex === i}
+              active={activeIndex === i}
+              onCopy={() => handleCopy(i, color)}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-ink-500">Bar width = share of pixels</p>
       </div>
 
       {/* Detailed grid */}

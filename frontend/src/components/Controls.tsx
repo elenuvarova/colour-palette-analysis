@@ -1,6 +1,7 @@
 import { SectionHeader } from "./ui/SectionHeader";
+import { Segmented } from "./ui/Segmented";
 import { Slider } from "./ui/Slider";
-import { SegmentedToggle, Switch } from "./ui/Toggle";
+import { Switch } from "./ui/Toggle";
 import type { ExtractMode, ExtractParams } from "../types";
 
 interface ControlsProps {
@@ -24,6 +25,7 @@ export function Controls({ params, onChange, disabled }: ControlsProps) {
         value={params.limit}
         onChange={(v) => patch({ limit: v })}
         hint="How many dominant colours to return."
+        disabled={disabled}
       />
 
       <Slider
@@ -34,9 +36,10 @@ export function Controls({ params, onChange, disabled }: ControlsProps) {
         onChange={(v) => patch({ tolerance: v })}
         hint="Higher merges similar shades together."
         formatValue={(v) => `${v}`}
+        disabled={disabled}
       />
 
-      <SegmentedToggle<ExtractMode>
+      <Segmented<ExtractMode>
         label="Mode"
         value={params.mode}
         options={[
@@ -44,11 +47,14 @@ export function Controls({ params, onChange, disabled }: ControlsProps) {
           { value: "precision", label: "Precision" },
         ]}
         onChange={(v) => patch({ mode: v })}
+        fullWidth
+        size="md"
         hint={
           params.mode === "fast"
             ? "Samples pixels for a quick result."
             : "Processes every pixel for accuracy."
         }
+        disabled={disabled}
       />
 
       <Switch
@@ -56,6 +62,7 @@ export function Controls({ params, onChange, disabled }: ControlsProps) {
         checked={params.ignore_alpha}
         onChange={(v) => patch({ ignore_alpha: v })}
         hint="Skip fully/partly transparent areas."
+        disabled={disabled}
       />
     </div>
   );

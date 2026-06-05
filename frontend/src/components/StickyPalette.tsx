@@ -58,9 +58,9 @@ export function StickyPalette({
           : "pointer-events-none -translate-y-full opacity-0"
       }`}
     >
-      <div className="border-b border-ink-800 bg-ink-950/85 backdrop-blur-md">
+      <div className="border-b border-ink-800 bg-ink-950/85 shadow-pop backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2 sm:px-6">
-          <div className="flex h-7 flex-1 overflow-hidden rounded-md">
+          <div className="flex h-7 flex-1 overflow-hidden rounded-sm">
             {colors.map((c, i) => (
               <button
                 key={`${c.hex}-${i}`}
@@ -90,7 +90,7 @@ export function StickyPalette({
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Scroll to top"
           >
-            <ArrowUp className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" aria-hidden="true" />
           </IconButton>
           <IconButton
             size="sm"
@@ -102,7 +102,7 @@ export function StickyPalette({
             aria-label="New image"
             title="Start over with a new image"
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
           </IconButton>
         </div>
       </div>

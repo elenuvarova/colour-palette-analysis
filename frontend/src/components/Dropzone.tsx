@@ -131,6 +131,7 @@ export function Dropzone({
     <div className="flex flex-col gap-4">
       <div
         {...getRootProps()}
+        aria-label="Image drop zone. Drag an image here, or use Browse files."
         className={clsx(
           "card relative flex flex-col items-center justify-center gap-3 px-6 py-10 text-center transition-colors",
           isDragActive
@@ -139,7 +140,7 @@ export function Dropzone({
           disabled && "pointer-events-none opacity-60",
         )}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} aria-label="Choose an image file to upload" />
 
         {preview ? (
           <div className="flex w-full flex-col items-center gap-4">
@@ -147,7 +148,7 @@ export function Dropzone({
               <img
                 src={preview}
                 alt={fileName ?? "Selected image preview"}
-                className="max-h-44 rounded-xl border border-ink-700 object-contain"
+                className="max-h-44 rounded-md border border-ink-700 object-contain"
               />
               <button
                 type="button"
@@ -156,9 +157,12 @@ export function Dropzone({
                   clearPreview();
                 }}
                 aria-label="Remove image"
-                className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-ink-700 bg-ink-900 text-ink-300 hover:text-ink-100"
+                // 28px visual badge with a 44px tap target (WCAG 2.5.8).
+                className="absolute -right-3.5 -top-3.5 grid h-11 w-11 place-items-center"
               >
-                <X className="h-4 w-4" />
+                <span className="grid h-7 w-7 place-items-center rounded-full border border-ink-700 bg-ink-900 text-ink-300 transition-colors hover:text-ink-100">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </span>
               </button>
             </div>
             <p className="max-w-full truncate font-mono text-xs text-ink-400">
@@ -170,7 +174,7 @@ export function Dropzone({
                 size="sm"
                 type="button"
                 onClick={() => setEditing(true)}
-                icon={<Crop className="h-4 w-4" />}
+                icon={<Crop className="h-4 w-4" aria-hidden="true" />}
               >
                 Crop / rotate
               </Button>
@@ -186,8 +190,8 @@ export function Dropzone({
           </div>
         ) : (
           <>
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 text-accent-400">
-              <UploadCloud className="h-6 w-6" />
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-ink-800 text-accent-text">
+              <UploadCloud className="h-6 w-6" aria-hidden="true" />
             </span>
             <div className="space-y-1">
               <p className="text-sm font-medium text-ink-100">
@@ -202,13 +206,13 @@ export function Dropzone({
               size="sm"
               type="button"
               onClick={open}
-              icon={<ImageIcon className="h-4 w-4" />}
+              icon={<ImageIcon className="h-4 w-4" aria-hidden="true" />}
             >
               Browse files
             </Button>
-            <p className="text-xs text-ink-600">
+            <p className="text-xs text-ink-400">
               or press{" "}
-              <kbd className="rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 font-mono text-2xs text-ink-300">
+              <kbd className="rounded-sm border border-ink-700 bg-ink-850 px-1.5 py-0.5 font-mono text-2xs text-ink-300">
                 ⌘/Ctrl + V
               </kbd>{" "}
               to paste
@@ -220,10 +224,14 @@ export function Dropzone({
       {/* URL entry */}
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
-          <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+          <Link2
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500"
+          />
           <input
             type="url"
             inputMode="url"
+            aria-label="Image or page URL"
             placeholder="Paste an image or page URL"
             value={url}
             disabled={disabled}
@@ -231,7 +239,7 @@ export function Dropzone({
             onKeyDown={(e) => {
               if (e.key === "Enter") submit("image");
             }}
-            className="h-11 w-full rounded-xl border border-ink-700 bg-ink-850 pl-9 pr-3 text-sm text-ink-100 placeholder:text-ink-500 focus:border-accent-500/60"
+            className="h-11 w-full rounded-md border border-ink-700 bg-ink-850 pl-9 pr-3 text-sm text-ink-100 placeholder:text-ink-500 focus:border-accent-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70"
           />
         </div>
         <div className="flex gap-2">

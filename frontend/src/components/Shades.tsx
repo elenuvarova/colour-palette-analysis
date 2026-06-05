@@ -25,7 +25,7 @@ export function Shades({ colors, onCopy, names, displayNames }: ShadesProps) {
           <Button
             variant="secondary"
             size="sm"
-            icon={<Braces className="h-4 w-4" />}
+            icon={<Braces className="h-4 w-4" aria-hidden="true" />}
             onClick={() =>
               onCopy(
                 toTailwindScales(colors, names),
